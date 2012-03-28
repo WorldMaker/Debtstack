@@ -41,8 +41,8 @@
   <ItemGroup>
     <Resource Include="ApplicationResources.xaml" />
     <Resource Include="MainWindow.xaml" />
-    <Compile Include="Transaction.fs" />
     <Compile Include="MonthAgo.fs" />
+    <Compile Include="Transaction.fs" />
     <Compile Include="Handler.fs" />
     <Compile Include="App.fs" />
     <None Include="packages.config" />

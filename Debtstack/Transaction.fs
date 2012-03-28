@@ -11,6 +11,7 @@ type TransactionType =
 
 type Transaction = {
     Type: TransactionType;
+    Name: string;
     Value: decimal;
     Date: DateTime;
     }
@@ -21,15 +22,19 @@ type ITransactionState =
     abstract member Paid : decimal with get, set
     abstract member PaidDate : DateTime option with get, set
 
-type TransactionState () as this =
+type TransactionState (tx : Transaction) as this =
     inherit ImpromptuViewModel<ITransactionState> ()
 
     do
+        this.Contract.Transaction <- tx
         this.Contract.Paid <- 0m
         this.Contract.PaidDate <- None
-        !?this.Dependencies?Transaction?Remaining?Link
+        this.Dependencies?Transaction?Remaining?Link ()
+        this.Dependencies?Transaction?MonthAgo?Link ()
 
     member this.Remaining with get () = match this.Contract.Transaction.Type with
         | Debit    -> this.Contract.Transaction.Value + this.Contract.Paid
         | Interest -> this.Contract.Transaction.Value + this.Contract.Paid
         | _        -> 0m
+
+    member this.MonthAgo with get () = MonthAgo.monthAgo this.Contract.Transaction.Date
