@@ -33,8 +33,8 @@ type TransactionState (tx : Transaction) as this =
         this.Dependencies?Transaction?MonthAgo?Link ()
 
     member this.Remaining with get () = match this.Contract.Transaction.Type with
-        | Debit    -> this.Contract.Transaction.Value + this.Contract.Paid
-        | Interest -> this.Contract.Transaction.Value + this.Contract.Paid
-        | _        -> 0m
+                                        | Debit    -> this.Contract.Transaction.Value + this.Contract.Paid
+                                        | Interest -> this.Contract.Transaction.Value + this.Contract.Paid
+                                        | _        -> 0m
 
     member this.MonthAgo with get () = MonthAgo.monthAgo this.Contract.Transaction.Date
