@@ -52,3 +52,9 @@ type Harness () as this =
                                                                           | Some tx -> this.Contract.Transactions.Add (new TransactionState (tx))
                                                                           | _ -> ())
                                                 |> ignore
+
+    member this.Reset (_ : obj) =
+        Strategies.reset (this.Contract.Transactions |> Seq.toList)
+
+    member this.Simple (_ : obj) =
+        Strategies.simpleStack (this.Contract.Transactions |> Seq.toList)

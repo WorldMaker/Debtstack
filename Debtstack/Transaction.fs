@@ -38,3 +38,7 @@ type TransactionState (tx : Transaction) as this =
                                         | _        -> 0m
 
     member this.MonthAgo with get () = MonthAgo.monthAgo this.Contract.Transaction.Date
+
+    member this.Reset () =
+        this.Contract.Paid <- 0m
+        this.Contract.PaidDate <- None

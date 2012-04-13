@@ -27,7 +27,11 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <Button Content="Load" Command="{Binding Command.Load}"/>
+        <StackPanel Orientation="Horizontal">
+            <Button Content="Load" Command="{Binding Command.Load}"/>
+            <Button Content="Reset" Command="{Binding Command.Reset}"/>
+            <Button Content="Simple" Command="{Binding Command.Simple}"/>
+        </StackPanel>
         <ListBox ItemsSource="{Binding Transactions}" Grid.Row="1">
         </ListBox>
     </Grid>
