@@ -58,3 +58,6 @@ type Harness () as this =
 
     member this.Simple (_ : obj) =
         Strategies.simpleStack (this.Contract.Transactions |> Seq.toList)
+
+    member this.Proportional (_ : obj) =
+        Strategies.favorTheOld (this.Contract.Transactions |> Seq.toList)
