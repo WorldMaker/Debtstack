@@ -31,8 +31,14 @@ type IDebtstack =
 type Harness () as this =
     inherit ImpromptuViewModel<IDebtstack> ()
 
+    let mutable Source = list<TransactionState>.Empty
+
     do
         this.Contract.Transactions <- new ObservableCollection<TransactionState> ()
+
+    member this.TxCount with get () = Source.Length
+
+    member this.TxSum with get () = this.Contract.Transactions |> Seq.sumBy (fun tx -> tx.Remaining)
 
     member this.Load (_ : obj) =
         let to_tx = fun (line : string) -> match line.Split('\t') |> Array.filter (fun x -> x <> String.Empty) |> Array.toList with
@@ -46,18 +52,29 @@ type Harness () as this =
         let dialog = new OpenFileDialog ()
         let result = dialog.ShowDialog ()
 
-        if result.HasValue && result.Value then File.ReadAllLines (dialog.FileName)
+        if result.HasValue && result.Value then Source <- File.ReadAllLines (dialog.FileName)
                                                 |> Array.filter (fun line -> line <> String.Empty)
-                                                |> Array.map (fun line -> match to_tx (line) with
-                                                                          | Some tx -> this.Contract.Transactions.Add (new TransactionState (tx))
-                                                                          | _ -> ())
-                                                |> ignore
+                                                |> Array.map    to_tx
+                                                |> Array.filter Option.isSome
+                                                |> Array.map    (fun tx -> new TransactionState (tx.Value))
+                                                |> List.ofArray
+        this.OnPropertyChanged "TxCount"
 
     member this.Reset (_ : obj) =
-        Strategies.reset (this.Contract.Transactions |> Seq.toList)
+        this.Contract.Transactions.Clear ()
+        Strategies.reset Source
 
     member this.Simple (_ : obj) =
-        Strategies.simpleStack (this.Contract.Transactions |> Seq.toList)
+        Strategies.simpleStack Source
+        this.Display ()
 
     member this.Proportional (_ : obj) =
-        Strategies.favorTheOld (this.Contract.Transactions |> Seq.toList)
+        Strategies.favorTheOld Source
+        this.Display ()
+
+    member this.Display () =
+        this.Contract.Transactions.Clear ()
+        Source |> List.filter (fun tx -> tx.Remaining <> 0m)
+               |> List.map    this.Contract.Transactions.Add
+               |> ignore
+        this.OnPropertyChanged "TxSum"
