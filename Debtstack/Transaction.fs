@@ -21,6 +21,8 @@ type ITransactionState =
     abstract member Transaction : Transaction with get, set
     abstract member Paid : decimal with get, set
     abstract member PaidDate : DateTime option with get, set
+    abstract member Interest : decimal with get, set
+    abstract member TotalInterest : decimal with get, set
 
 type TransactionState (tx : Transaction) as this =
     inherit ImpromptuViewModel<ITransactionState> ()
@@ -31,14 +33,27 @@ type TransactionState (tx : Transaction) as this =
         this.Contract.PaidDate <- None
         this.Dependencies?Transaction?Remaining?Link ()
         this.Dependencies?Transaction?MonthAgo?Link ()
+        this.Dependencies?PaidDate?PaidMonthAgo?Link ()
 
     member this.Remaining with get () = match this.Contract.Transaction.Type with
                                         | Debit    -> this.Contract.Transaction.Value + this.Contract.Paid
-                                        | Interest -> this.Contract.Transaction.Value + this.Contract.Paid
                                         | _        -> 0m
 
     member this.MonthAgo with get () = MonthAgo.monthAgo this.Contract.Transaction.Date
 
+    member this.PaidMonthAgo with get () = if this.Contract.PaidDate.IsSome then MonthAgo.monthAgo this.Contract.PaidDate.Value else "unpaid"
+
     member this.Reset () =
         this.Contract.Paid <- 0m
         this.Contract.PaidDate <- None
+
+    member this.Interest interest = this.Contract.Interest      <- this.Contract.Interest      + interest
+                                    this.Contract.TotalInterest <- this.Contract.TotalInterest + interest
+
+    member this.Pay credit date = let intamt = min -this.Contract.Interest credit
+                                  this.Contract.Interest <- this.Contract.Interest - intamt
+                                  let amt = min -this.Remaining (credit - intamt)
+                                  if amt > 0m && this.Remaining < 0m then this.Contract.Paid <- this.Contract.Paid + amt
+                                                                          this.Contract.PaidDate <- if this.Remaining = 0m then Some date else None
+                                                                          amt
+                                                                     else 0m

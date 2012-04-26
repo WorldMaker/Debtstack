@@ -6,7 +6,7 @@
     <Window.Resources>
         <my:Harness x:Key="Harness"/>
         <DataTemplate DataType="{x:Type my:TransactionState}">
-            <Grid Margin="5">
+            <Grid Margin="5" HorizontalAlignment="Stretch">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="75*"/>
                     <ColumnDefinition Width="25*"/>
@@ -26,30 +26,48 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="4*"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
-        <StackPanel Orientation="Horizontal" Grid.ColumnSpan="2">
+        <ToolBar>
             <Button Content="Load" Command="{Binding Command.Load}"/>
+            <Separator/>
             <Button Content="Reset" Command="{Binding Command.Reset}"/>
+            <Separator/>
             <Button Content="Simple" Command="{Binding Command.Simple}"/>
             <Button Content="Proportional" Command="{Binding Command.Proportional}"/>
-        </StackPanel>
-        <WrapPanel Grid.Row="1">
+        </ToolBar>
+        <WrapPanel Grid.Row="1" Margin="5">
             <TextBlock Text="{Binding TxCount}"/>
-            <TextBlock Text=" Total Transactions"/>
-        </WrapPanel>
-        <ListBox ItemsSource="{Binding Transactions}" Grid.Row="2">
-        </ListBox>
-        <WrapPanel Grid.Row="3">
+            <TextBlock Text=" Total Transactions "/>
             <TextBlock Text="{Binding TxSum, StringFormat=c}"/>
+            <TextBlock Text=" Current Debt"/>
         </WrapPanel>
-        <chartingToolkit:Chart Grid.Row="2" Grid.Column="1">
-            <chartingToolkit:PieSeries ItemsSource="{Binding Transactions}" IndependentValueBinding="{Binding Transaction.Name}" DependentValueBinding="{Binding Remaining}"/>
-        </chartingToolkit:Chart>
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="2*"/>
+            </Grid.ColumnDefinitions>
+            <ListBox ItemsSource="{Binding Transactions}" Grid.Row="2">
+            </ListBox>
+            <chartingToolkit:Chart Grid.Column="2">
+                <chartingToolkit:PieSeries ItemsSource="{Binding Transactions}" IndependentValueBinding="{Binding Transaction.Name}" DependentValueBinding="{Binding Remaining}"/>
+            </chartingToolkit:Chart>
+            <GridSplitter Grid.Column="1" VerticalAlignment="Stretch" HorizontalAlignment="Center" Width="4"/>
+        </Grid>
+        <DataGrid Grid.Row="4" ItemsSource="{Binding PaidTransactions}" AutoGenerateColumns="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Date" Binding="{Binding Transaction.Date, StringFormat=d}"/>
+                <DataGridTextColumn Header="" Binding="{Binding MonthAgo}"/>
+                <DataGridTextColumn Header="Paid" Binding="{Binding PaidDate.Value, StringFormat=d}"/>
+                <DataGridTextColumn Header="" Binding="{Binding PaidMonthAgo}"/>
+                <DataGridTextColumn Header="Description" Binding="{Binding Transaction.Name}"/>
+                <DataGridTextColumn Header="Amount" Binding="{Binding Transaction.Value, StringFormat=c}"/>
+                <DataGridTextColumn Header="Interest" Binding="{Binding TotalInterest, StringFormat=c}"/>
+            </DataGrid.Columns>
+        </DataGrid>
+        <GridSplitter Grid.Row="3" HorizontalAlignment="Stretch" VerticalAlignment="Center" Height="4"/>
     </Grid>
 </Window>

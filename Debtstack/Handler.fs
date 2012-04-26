@@ -26,7 +26,8 @@ module Handler =
 
 [<Interface>]
 type IDebtstack =
-    abstract member Transactions : ObservableCollection<TransactionState> with get, set
+    abstract member Transactions     : ObservableCollection<TransactionState> with get, set
+    abstract member PaidTransactions : ObservableCollection<TransactionState> with get, set
 
 type Harness () as this =
     inherit ImpromptuViewModel<IDebtstack> ()
@@ -34,7 +35,8 @@ type Harness () as this =
     let mutable Source = list<TransactionState>.Empty
 
     do
-        this.Contract.Transactions <- new ObservableCollection<TransactionState> ()
+        this.Contract.Transactions     <- new ObservableCollection<TransactionState> ()
+        this.Contract.PaidTransactions <- new ObservableCollection<TransactionState> ()
 
     member this.TxCount with get () = Source.Length
 
@@ -62,6 +64,7 @@ type Harness () as this =
 
     member this.Reset (_ : obj) =
         this.Contract.Transactions.Clear ()
+        this.Contract.PaidTransactions.Clear ()
         Strategies.reset Source
 
     member this.Simple (_ : obj) =
@@ -76,5 +79,10 @@ type Harness () as this =
         this.Contract.Transactions.Clear ()
         Source |> List.filter (fun tx -> tx.Remaining <> 0m)
                |> List.map    this.Contract.Transactions.Add
+               |> ignore
+        Source |> List.filter (fun tx -> tx.Contract.PaidDate.IsSome)
+               |> List.sortBy (fun tx -> (tx.Contract.PaidDate.Value, tx.Contract.Transaction.Value))
+               |> List.rev
+               |> List.map    this.Contract.PaidTransactions.Add
                |> ignore
         this.OnPropertyChanged "TxSum"
