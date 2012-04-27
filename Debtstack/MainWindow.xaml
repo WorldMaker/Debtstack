@@ -43,6 +43,9 @@
             <TextBlock Text=" Total Transactions "/>
             <TextBlock Text="{Binding TxSum, StringFormat=c}"/>
             <TextBlock Text=" Current Debt"/>
+            <!--<TextBlock Text=" (Should Be: "/>
+            <TextBlock Text="{Binding TxSimpleSum, StringFormat=c}"/>
+            <TextBlock Text=")"/>-->
         </WrapPanel>
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>

@@ -42,6 +42,8 @@ type Harness () as this =
 
     member this.TxSum with get () = this.Contract.Transactions |> Seq.sumBy (fun tx -> tx.Remaining)
 
+    member this.TxSimpleSum with get () = Source |> Seq.sumBy (fun tx -> tx.Contract.Transaction.Value)
+
     member this.Load (_ : obj) =
         let to_tx = fun (line : string) -> match line.Split('\t') |> Array.filter (fun x -> x <> String.Empty) |> Array.toList with
                                            | d :: n :: a :: xs -> let amt = Handler.readAcct a
@@ -61,6 +63,7 @@ type Harness () as this =
                                                 |> Array.map    (fun tx -> new TransactionState (tx.Value))
                                                 |> List.ofArray
         this.OnPropertyChanged "TxCount"
+        this.OnPropertyChanged "TxSimpleSum"
 
     member this.Reset (_ : obj) =
         this.Contract.Transactions.Clear ()
@@ -77,6 +80,7 @@ type Harness () as this =
 
     member this.Display () =
         this.Contract.Transactions.Clear ()
+        this.Contract.PaidTransactions.Clear ()
         Source |> List.filter (fun tx -> tx.Remaining <> 0m)
                |> List.map    this.Contract.Transactions.Add
                |> ignore

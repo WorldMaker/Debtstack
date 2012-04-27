@@ -46,6 +46,8 @@ type TransactionState (tx : Transaction) as this =
     member this.Reset () =
         this.Contract.Paid <- 0m
         this.Contract.PaidDate <- None
+        this.Contract.Interest <- 0m
+        this.Contract.TotalInterest <- 0m
 
     member this.Interest interest = this.Contract.Interest      <- this.Contract.Interest      + interest
                                     this.Contract.TotalInterest <- this.Contract.TotalInterest + interest
