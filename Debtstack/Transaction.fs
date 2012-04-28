@@ -1,4 +1,6 @@
-﻿namespace Debtstack
+﻿// Copyright 2012 Max Battcher. Some rights reserved.
+// Licensed for use under the Ms-RL. See attached LICENSE file.
+namespace Debtstack
 
 open System
 open ImpromptuInterface.MVVM
