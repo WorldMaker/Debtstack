@@ -31,7 +31,8 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <ToolBar>
-            <Button Content="Load" Command="{Binding Command.Load}"/>
+            <Button Content="Load Tab" Command="{Binding Command.LoadTab}"/>
+            <Button Content="Load Mint CSV" Command="{Binding Command.LoadMint}"/>
             <Separator/>
             <Button Content="Reset" Command="{Binding Command.Reset}"/>
             <Separator/>

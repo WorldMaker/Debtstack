@@ -9,6 +9,8 @@ open ImpromptuInterface.MVVM
 open ImpromptuInterface.FSharp
 
 module Handler =
+    exception LoadProblem of string
+
     let (|Match|_|) pattern input =
       let re = new Regex (pattern, RegexOptions.Compiled)
       let m = re.Match input
@@ -44,10 +46,10 @@ type Harness () as this =
 
     member this.TxSimpleSum with get () = Source |> Seq.sumBy (fun tx -> tx.Contract.Transaction.Value)
 
-    member this.Load (_ : obj) =
+    member this.LoadTab (_ : obj) =
         let to_tx = fun (line : string) -> match line.Split('\t') |> Array.filter (fun x -> x <> String.Empty) |> Array.toList with
                                            | d :: n :: a :: xs -> let amt = Handler.readAcct a
-                                                                  let t = if n.StartsWith("Interest", StringComparison.OrdinalIgnoreCase) then Interest
+                                                                  let t = if n.StartsWith ("Interest", StringComparison.OrdinalIgnoreCase) then Interest
                                                                           elif amt > 0m then Credit
                                                                           else Debit
                                                                   Some { Type = t; Name = n; Date = DateTime.Parse (d); Value = amt }
@@ -64,6 +66,29 @@ type Harness () as this =
                                                 |> List.ofArray
         this.OnPropertyChanged "TxCount"
         this.OnPropertyChanged "TxSimpleSum"
+
+    member this.LoadMint (_ : obj) =
+        let dialog = new OpenFileDialog ()
+        dialog.Filter <- "CSV Files|*.csv"
+        let result = dialog.ShowDialog ()
+
+        if result.HasValue && result.Value then let reader = new StreamReader (dialog.OpenFile ())
+                                                let csv = new CsvHelper.CsvReader (reader)
+                                                Source <- []
+                                                while csv.Read () do
+                                                  if not (csv.["Category"].StartsWith ("Exclude", StringComparison.OrdinalIgnoreCase)) then
+                                                    let name = csv.["Description"]
+                                                    let t = if name.StartsWith ("Interest", StringComparison.OrdinalIgnoreCase) then Interest
+                                                            else match csv.["Transaction Type"] with
+                                                                 | "debit"  -> Debit
+                                                                 | "credit" -> Credit
+                                                                 | _        -> raise (Handler.LoadProblem "Unknown transaction type")
+                                                    let amt = Decimal.Parse (csv.["Amount"])
+                                                    let value = if t = Credit then amt else -amt
+                                                    let tx = new TransactionState ({ Type = t; Name = name; Date = DateTime.Parse (csv.["Date"]); Value = value; })
+                                                    Source <- tx :: Source
+        this.OnPropertyChanged "TxCount"
+        this.OnPropertyChanged "TxSimpleCount"
 
     member this.Reset (_ : obj) =
         this.Contract.Transactions.Clear ()
