@@ -15,7 +15,11 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                <TextBlock Text="{Binding Transaction.Name}" FontWeight="DemiBold"/>
+                <WrapPanel>
+                    <TextBlock Text="{Binding Transaction.Category}" FontStyle="Italic"/>
+                    <TextBlock Text=" "/>
+                    <TextBlock Text="{Binding Transaction.Name}" FontWeight="DemiBold"/>
+                </WrapPanel>
                 <TextBlock Text="{Binding MonthAgo}" Grid.Row="1"/>
                 <TextBlock Text="{Binding Remaining, StringFormat=c}" FontWeight="DemiBold" Grid.Column="1" Margin="5,0" TextAlignment="Right"/>
                 <TextBlock Text="{Binding Transaction.Value, StringFormat=c}" Grid.Column="1" Grid.Row="1" Margin="5,0" TextAlignment="Right"/>
@@ -31,10 +35,10 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <ToolBar>
-            <Button Content="Load Tab" Command="{Binding Command.LoadTab}"/>
+            <!--<Button Content="Load Tab" Command="{Binding Command.LoadTab}"/>-->
             <Button Content="Load Mint CSV" Command="{Binding Command.LoadMint}"/>
-            <Separator/>
-            <Button Content="Reset" Command="{Binding Command.Reset}"/>
+            <!--<Separator/>
+            <Button Content="Reset" Command="{Binding Command.Reset}"/>-->
             <Separator/>
             <Button Content="Simple" Command="{Binding Command.Simple}"/>
             <Button Content="Proportional" Command="{Binding Command.Proportional}"/>
@@ -54,10 +58,10 @@
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="2*"/>
             </Grid.ColumnDefinitions>
-            <ListBox ItemsSource="{Binding Transactions}" Grid.Row="2">
+            <ListBox ItemsSource="{Binding Transactions}" Grid.Row="2" HorizontalContentAlignment="Stretch">
             </ListBox>
             <chartingToolkit:Chart Grid.Column="2">
-                <chartingToolkit:PieSeries ItemsSource="{Binding Transactions}" IndependentValueBinding="{Binding Transaction.Name}" DependentValueBinding="{Binding Remaining}"/>
+                <chartingToolkit:PieSeries ItemsSource="{Binding TxByCategory}" IndependentValueBinding="{Binding Item1}" DependentValueBinding="{Binding Item2}"/>
             </chartingToolkit:Chart>
             <GridSplitter Grid.Column="1" VerticalAlignment="Stretch" HorizontalAlignment="Center" Width="4"/>
         </Grid>

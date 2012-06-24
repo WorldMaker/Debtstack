@@ -48,13 +48,16 @@ type Harness () as this =
 
     member this.TxSimpleSum with get () = Source |> Seq.sumBy (fun tx -> tx.Contract.Transaction.Value)
 
+    member this.TxByCategory with get () = this.Contract.Transactions |> Seq.groupBy (fun tx -> tx.Contract.Transaction.Category)
+                                                                      |> Seq.map (fun (k, g) -> (k, g |> Seq.map (fun tx -> tx.Remaining) |> Seq.sum))
+
     member this.LoadTab (_ : obj) =
         let to_tx = fun (line : string) -> match line.Split('\t') |> Array.filter (fun x -> x <> String.Empty) |> Array.toList with
                                            | d :: n :: a :: xs -> let amt = Handler.readAcct a
                                                                   let t = if n.StartsWith ("Interest", StringComparison.OrdinalIgnoreCase) then Interest
                                                                           elif amt > 0m then Credit
                                                                           else Debit
-                                                                  Some { Type = t; Name = n; Date = DateTime.Parse (d); Value = amt }
+                                                                  Some { Type = t; Name = n; Date = DateTime.Parse (d); Value = amt; Category = String.Empty; }
                                            | _ -> None
 
         let dialog = new OpenFileDialog ()
@@ -87,7 +90,7 @@ type Harness () as this =
                                                                  | _        -> raise (Handler.LoadProblem "Unknown transaction type")
                                                     let amt = Decimal.Parse (csv.["Amount"])
                                                     let value = if t = Credit then amt else -amt
-                                                    let tx = new TransactionState ({ Type = t; Name = name; Date = DateTime.Parse (csv.["Date"]); Value = value; })
+                                                    let tx = new TransactionState ({ Type = t; Name = name; Date = DateTime.Parse (csv.["Date"]); Value = value; Category = csv.["Category"]; })
                                                     Source <- tx :: Source
         this.OnPropertyChanged "TxCount"
         this.OnPropertyChanged "TxSimpleCount"
@@ -117,3 +120,4 @@ type Harness () as this =
                |> List.map    this.Contract.PaidTransactions.Add
                |> ignore
         this.OnPropertyChanged "TxSum"
+        this.OnPropertyChanged "TxByCategory"

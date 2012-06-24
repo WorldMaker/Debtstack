@@ -16,6 +16,7 @@ type Transaction = {
     Name: string;
     Value: decimal;
     Date: DateTime;
+    Category: string;
     }
 
 [<Interface>]
