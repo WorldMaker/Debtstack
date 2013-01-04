@@ -14,6 +14,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <TextBlock Text="{Binding Transaction.Name}" FontWeight="DemiBold"/>
                 <WrapPanel Grid.Row="1">
@@ -23,6 +24,11 @@
                 </WrapPanel>
                 <TextBlock Text="{Binding Remaining, StringFormat=c}" FontWeight="DemiBold" Grid.Column="1" Margin="5,0" TextAlignment="Right"/>
                 <TextBlock Text="{Binding Transaction.Value, StringFormat=c}" Grid.Column="1" Grid.Row="1" Margin="5,0" TextAlignment="Right"/>
+                <TextBlock Visibility="{Binding InterestVisibility}" Text="{Binding TotalInterest, StringFormat=c}" Foreground="Red" Grid.Column="1" Grid.Row="2" Margin="5,0" TextAlignment="Right"/>
+                <StackPanel Visibility="{Binding InterestVisibility}" Orientation="Horizontal" Grid.Row="2" HorizontalAlignment="Right">
+                    <TextBlock Text="Interest" Margin="5,0"/>
+                    <TextBlock Text="{Binding Interest, StringFormat=c}" Margin="5,0"/>
+                </StackPanel>
             </Grid>            
         </DataTemplate>
     </Window.Resources>
@@ -48,9 +54,9 @@
             <TextBlock Text=" Total Transactions "/>
             <TextBlock Text="{Binding TxSum, StringFormat=c}"/>
             <TextBlock Text=" Current Debt"/>
-            <!--<TextBlock Text=" (Should Be: "/>
-            <TextBlock Text="{Binding TxSimpleSum, StringFormat=c}"/>
-            <TextBlock Text=")"/>-->
+            <TextBlock Text=" including "/>
+            <TextBlock Text="{Binding TxInterest, StringFormat=c}"/>
+            <TextBlock Text=" Interest"/>
         </WrapPanel>
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>

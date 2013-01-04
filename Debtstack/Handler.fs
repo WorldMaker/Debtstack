@@ -48,6 +48,8 @@ type Harness () as this =
 
     member this.TxSimpleSum with get () = Source |> Seq.sumBy (fun tx -> tx.Contract.Transaction.Value)
 
+    member this.TxInterest with get () = Source |> Seq.sumBy (fun tx -> tx.Contract.Interest)
+
     member this.TxByCategory with get () = this.Contract.Transactions |> Seq.groupBy (fun tx -> tx.Contract.Transaction.Category)
                                                                       |> Seq.map (fun (k, g) -> (k, g |> Seq.map (fun tx -> tx.Remaining) |> Seq.sum))
 
@@ -83,7 +85,7 @@ type Harness () as this =
                                                 while csv.Read () do
                                                   if not (csv.["Category"].StartsWith ("Exclude", StringComparison.OrdinalIgnoreCase)) then
                                                     let name = csv.["Description"]
-                                                    let t = if name.StartsWith ("Interest", StringComparison.OrdinalIgnoreCase) then Interest
+                                                    let t = if name.IndexOf ("Interest", StringComparison.OrdinalIgnoreCase) >= 0 then Interest
                                                             else match csv.["Transaction Type"] with
                                                                  | "debit"  -> Debit
                                                                  | "credit" -> Credit
@@ -120,4 +122,5 @@ type Harness () as this =
                |> List.map    this.Contract.PaidTransactions.Add
                |> ignore
         this.OnPropertyChanged "TxSum"
+        this.OnPropertyChanged "TxInterest"
         this.OnPropertyChanged "TxByCategory"

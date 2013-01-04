@@ -3,6 +3,7 @@
 namespace Debtstack
 
 open System
+open System.Windows
 open ImpromptuInterface.MVVM
 open ImpromptuInterface.FSharp
 
@@ -34,13 +35,17 @@ type TransactionState (tx : Transaction) as this =
         this.Contract.Transaction <- tx
         this.Contract.Paid <- 0m
         this.Contract.PaidDate <- None
+        this.Dependencies?Interest?Remaining?Link ()
         this.Dependencies?Transaction?Remaining?Link ()
         this.Dependencies?Transaction?MonthAgo?Link ()
         this.Dependencies?PaidDate?PaidMonthAgo?Link ()
+        this.Dependencies?TotalInterest?InterestVisibility?Link ()
 
     member this.Remaining with get () = match this.Contract.Transaction.Type with
-                                        | Debit    -> this.Contract.Transaction.Value + this.Contract.Paid
+                                        | Debit    -> this.Contract.Transaction.Value + this.Contract.Interest + this.Contract.Paid
                                         | _        -> 0m
+
+    member this.InterestVisibility with get () = if this.Contract.TotalInterest <> 0m then Visibility.Visible else Visibility.Collapsed
 
     member this.MonthAgo with get () = MonthAgo.monthAgo this.Contract.Transaction.Date
 

@@ -22,8 +22,9 @@ module Strategies =
         let rec screen = function
                        | (tx : TransactionState) :: txs, stack -> match tx.Contract.Transaction.Type with
                                                                   | Debit    -> screen (txs, tx :: stack)
-                                                                  | Interest -> let interest = roundpenny (tx.Contract.Transaction.Value / decimal stack.Length)
-                                                                                tx.Interest (interest - interesting (stack, interest))
+                                                                  | Interest -> let interest = tx.Contract.Transaction.Value
+                                                                                let portion = roundpenny (interest / decimal stack.Length)
+                                                                                stack.Head.Interest (interest - interesting (stack.Tail, portion))
                                                                                 screen (txs, stack)
                                                                   | Credit   -> payback (stack, tx.Contract.Transaction.Value, tx.Contract.Transaction.Date)
                                                                                 screen (txs, stack |> List.filter (fun x -> x.Contract.PaidDate.IsNone))
@@ -36,7 +37,7 @@ module Strategies =
                         | (tx : TransactionState) :: txs, credit, date -> payback (txs, credit - (tx.Pay (roundpenny (credit / (decimal txs.Length + 1m))) date), date)
                         | [], credit, _                                -> credit
         let rec interesting = function
-                            | (tx : TransactionState) :: txs, interest, sum -> let intamt = roundpenny (interest * tx.Remaining / sum)
+                            | (tx : TransactionState) :: txs, interest, sum -> let intamt = roundpenny (interest * (tx.Remaining / sum))
                                                                                tx.Interest intamt
                                                                                intamt + interesting (txs, interest, sum)
                             | [], interest, _                               -> 0m
@@ -44,7 +45,7 @@ module Strategies =
                        | (tx : TransactionState) :: txs, stack -> match tx.Contract.Transaction.Type with
                                                                   | Debit    -> screen (txs, tx :: stack)
                                                                   | Interest -> let interest = tx.Contract.Transaction.Value
-                                                                                tx.Interest (interest - interesting (stack, interest, stack |> List.sumBy (fun tx -> tx.Remaining)))
+                                                                                stack.Head.Interest (interest - interesting (stack.Tail, interest, stack |> List.sumBy (fun tx -> tx.Remaining)))
                                                                                 screen (txs, stack)
                                                                   | Credit   -> let mutable credit = tx.Contract.Transaction.Value
                                                                                 while credit > 0m do
