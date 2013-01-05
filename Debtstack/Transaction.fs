@@ -38,8 +38,11 @@ type TransactionState (tx : Transaction) as this =
         this.Dependencies?Interest?Remaining?Link ()
         this.Dependencies?Transaction?Remaining?Link ()
         this.Dependencies?Transaction?MonthAgo?Link ()
+        this.Dependencies?Transaction?CalendarSpan?Link ()
         this.Dependencies?PaidDate?PaidMonthAgo?Link ()
+        this.Dependencies?PaidDate?CalendarSpan?Link ()
         this.Dependencies?TotalInterest?InterestVisibility?Link ()
+        this.Dependencies?CalendarSpan?MonthBetween?Link ()
 
     member this.Remaining with get () = match this.Contract.Transaction.Type with
                                         | Debit    -> this.Contract.Transaction.Value + this.Contract.Interest + this.Contract.Paid
@@ -48,6 +51,14 @@ type TransactionState (tx : Transaction) as this =
     member this.InterestVisibility with get () = if this.Contract.TotalInterest <> 0m then Visibility.Visible else Visibility.Collapsed
 
     member this.MonthAgo with get () = MonthAgo.monthAgo this.Contract.Transaction.Date
+
+    member this.CalendarSpan with get () = match this.Contract.PaidDate with
+                                           | Some (date) -> Some (CalendarSpan.calculate this.Contract.Transaction.Date date)
+                                           | None        -> None
+
+    member this.MonthBetween with get () = match this.CalendarSpan with
+                                           | Some (span) -> MonthAgo.monthBetween span
+                                           | None        -> ""
 
     member this.PaidMonthAgo with get () = if this.Contract.PaidDate.IsSome then MonthAgo.monthAgo this.Contract.PaidDate.Value else "unpaid"
 
