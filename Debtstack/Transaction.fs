@@ -72,9 +72,9 @@ type TransactionState (tx : Transaction) as this =
                                     this.Contract.TotalInterest <- this.Contract.TotalInterest + interest
 
     member this.Pay credit date = let intamt = min -this.Contract.Interest credit
-                                  this.Contract.Interest <- this.Contract.Interest - intamt
+                                  this.Contract.Interest <- this.Contract.Interest + intamt
                                   let amt = min -this.Remaining (credit - intamt)
                                   if amt > 0m && this.Remaining < 0m then this.Contract.Paid <- this.Contract.Paid + amt
                                                                           this.Contract.PaidDate <- if this.Remaining = 0m then Some date else None
-                                                                          amt
-                                                                     else 0m
+                                                                          amt + intamt
+                                                                     else intamt
