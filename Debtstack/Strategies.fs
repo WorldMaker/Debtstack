@@ -2,6 +2,8 @@
 // Licensed for use under the Ms-RL. See attached LICENSE file.
 namespace Debtstack
 
+open ImpromptuInterface.FSharp
+
 module Strategies =
     exception MoneyProblems of string
 
@@ -20,14 +22,14 @@ module Strategies =
                                                                           interest + interesting (txs, interest)
                             | [], _                                    -> 0m
         let rec screen = function
-                       | (tx : TransactionState) :: txs, stack -> match tx.Contract.Transaction.Type with
+                       | (tx : TransactionState) :: txs, stack -> match tx.Proxy.Transaction.Type with
                                                                   | Debit    -> screen (txs, tx :: stack)
-                                                                  | Interest -> let interest = tx.Contract.Transaction.Value
+                                                                  | Interest -> let interest = tx.Proxy.Transaction.Value
                                                                                 let portion = roundpenny (interest / decimal stack.Length)
                                                                                 stack.Head.Interest (interest - interesting (stack.Tail, portion))
                                                                                 screen (txs, stack)
-                                                                  | Credit   -> payback (stack, tx.Contract.Transaction.Value, tx.Contract.Transaction.Date)
-                                                                                screen (txs, stack |> List.filter (fun x -> x.Contract.PaidDate.IsNone))
+                                                                  | Credit   -> payback (stack, tx.Proxy.Transaction.Value, tx.Proxy.Transaction.Date)
+                                                                                screen (txs, stack |> List.filter (fun x -> x.Proxy.PaidDate.IsNone))
                        | [], stack                             -> ()
         screen (txs, [])
 
@@ -37,20 +39,20 @@ module Strategies =
                         | (tx : TransactionState) :: txs, credit, date -> payback (txs, credit - (tx.Pay (roundpenny (credit / (decimal txs.Length + 1m))) date), date)
                         | [], credit, _                                -> credit
         let rec interesting = function
-                            | (tx : TransactionState) :: txs, interest, sum -> let intamt = roundpenny (interest * (tx.Remaining / sum))
+                            | (tx : TransactionState) :: txs, interest, sum -> let intamt = roundpenny (interest * (tx.TrueRemaining / sum))
                                                                                tx.Interest intamt
                                                                                intamt + interesting (txs, interest, sum)
                             | [], interest, _                               -> 0m
         let rec screen = function
-                       | (tx : TransactionState) :: txs, stack -> match tx.Contract.Transaction.Type with
+                       | (tx : TransactionState) :: txs, stack -> match tx.Proxy.Transaction.Type with
                                                                   | Debit    -> screen (txs, tx :: stack)
-                                                                  | Interest -> let interest = tx.Contract.Transaction.Value
-                                                                                stack.Head.Interest (interest - interesting (stack.Tail, interest, stack |> List.sumBy (fun tx -> tx.Remaining)))
+                                                                  | Interest -> let interest = tx.Proxy.Transaction.Value
+                                                                                stack.Head.Interest (interest - interesting (stack.Tail, interest, stack |> List.sumBy (fun tx -> tx.TrueRemaining)))
                                                                                 screen (txs, stack)
-                                                                  | Credit   -> let mutable credit = tx.Contract.Transaction.Value
+                                                                  | Credit   -> let mutable credit = tx.Proxy.Transaction.Value
                                                                                 while credit > 0m do
-                                                                                    credit <- payback (stack |> List.filter (fun x -> x.Contract.PaidDate.IsNone), credit, tx.Contract.Transaction.Date)
-                                                                                screen (txs, stack |> List.filter (fun x -> x.Contract.PaidDate.IsNone))
+                                                                                    credit <- payback (stack |> List.filter (fun x -> x.Proxy.PaidDate.IsNone), credit, tx.Proxy.Transaction.Date)
+                                                                                screen (txs, stack |> List.filter (fun x -> x.Proxy.PaidDate.IsNone))
                        | [], stack                             -> ()
         screen (txs, [])
 

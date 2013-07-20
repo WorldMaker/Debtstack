@@ -9,10 +9,11 @@
     <OutputType>WinExe</OutputType>
     <RootNamespace>FSharpWpfEmptyTemplate.App</RootNamespace>
     <AssemblyName>Debtstack</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <Name>App</Name>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\Debtstack\</SolutionDir>
     <RestorePackages>true</RestorePackages>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <DebugSymbols>true</DebugSymbols>
@@ -46,6 +47,9 @@
     <Compile Include="Strategies.fs" />
     <Compile Include="Handler.fs" />
     <Compile Include="App.fs" />
+    <None Include="App.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
@@ -55,15 +59,11 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="ImpromptuInterface">
-      <HintPath>..\packages\ImpromptuInterface.5.6.7\lib\net40\ImpromptuInterface.dll</HintPath>
+      <HintPath>..\packages\ImpromptuInterface.6.2.2\lib\net40\ImpromptuInterface.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="ImpromptuInterface.FSharp">
-      <HintPath>..\packages\ImpromptuInterface.FSharp.1.1.0\lib\net40\ImpromptuInterface.FSharp.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="ImpromptuInterface.MVVM">
-      <HintPath>..\packages\ImpromptuInterface.MVVM.3.6.2\lib\net40\ImpromptuInterface.MVVM.dll</HintPath>
+      <HintPath>..\packages\ImpromptuInterface.FSharp.1.2.13\lib\net40\ImpromptuInterface.FSharp.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
@@ -74,11 +74,47 @@
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
     <Reference Include="PresentationUI" />
+    <Reference Include="ReactiveUI">
+      <HintPath>..\packages\reactiveui-core.5.0.2\lib\Portable-Net45+WinRT45+WP8\ReactiveUI.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="ReactiveUI.Blend">
+      <HintPath>..\packages\reactiveui-platforms.5.0.2\lib\net45\ReactiveUI.Blend.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="ReactiveUI.Xaml">
+      <HintPath>..\packages\reactiveui-platforms.5.0.2\lib\net45\ReactiveUI.Xaml.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="ReflexUX">
+      <HintPath>..\..\ReflexUX\ReflexUX\bin\Debug\ReflexUX.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
+    <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Numerics" />
+    <Reference Include="System.Reactive.Core">
+      <HintPath>..\packages\Rx-Core.2.1.30214.0\lib\Net45\System.Reactive.Core.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Reactive.Interfaces">
+      <HintPath>..\packages\Rx-Interfaces.2.1.30214.0\lib\Net45\System.Reactive.Interfaces.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Reactive.Linq">
+      <HintPath>..\packages\Rx-Linq.2.1.30214.0\lib\Net45\System.Reactive.Linq.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Reactive.PlatformServices">
+      <HintPath>..\packages\Rx-PlatformServices.2.1.30214.0\lib\Net45\System.Reactive.PlatformServices.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Reactive.Windows.Threading">
+      <HintPath>..\packages\Rx-XAML.2.1.30214.0\lib\Net45\System.Reactive.Windows.Threading.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System.Windows.Controls.DataVisualization.Toolkit">
       <HintPath>..\packages\WPFToolkit.DataVisualization.3.5.50211.1\lib\System.Windows.Controls.DataVisualization.Toolkit.dll</HintPath>
       <Private>True</Private>

@@ -4,8 +4,9 @@ namespace Debtstack
 
 open System
 open System.Windows
-open ImpromptuInterface.MVVM
 open ImpromptuInterface.FSharp
+open ReactiveUI
+open ReflexUX
 
 type TransactionType =
     Debit
@@ -29,52 +30,51 @@ type ITransactionState =
     abstract member TotalInterest : decimal with get, set
 
 type TransactionState (tx : Transaction) as this =
-    inherit ImpromptuViewModel<ITransactionState> ()
+    inherit Reflex<ITransactionState> ()
+
+    let calculateRemaining (interest : decimal) (paid : decimal) (tx : Transaction) = match tx.Type with
+                                                                                      | Debit -> tx.Value + interest + paid
+                                                                                      | _     -> 0m
 
     do
-        this.Contract.Transaction <- tx
-        this.Contract.Paid <- 0m
-        this.Contract.PaidDate <- None
-        this.Dependencies?Interest?Remaining?Link ()
-        this.Dependencies?Transaction?Remaining?Link ()
-        this.Dependencies?Transaction?MonthAgo?Link ()
-        this.Dependencies?Transaction?CalendarSpan?Link ()
-        this.Dependencies?PaidDate?PaidMonthAgo?Link ()
-        this.Dependencies?PaidDate?CalendarSpan?Link ()
-        this.Dependencies?TotalInterest?InterestVisibility?Link ()
-        this.Dependencies?CalendarSpan?MonthBetween?Link ()
+        this.Proxy.Interest <- 0m
+        this.Proxy.Transaction <- tx
+        this.Proxy.Paid <- 0m
+        this.Proxy.PaidDate <- None
+        let remaining = WhenAnyMixin.WhenAny (this.Proxy, (fun x -> x.Interest), (fun x -> x.Paid), (fun x -> x.Transaction), (fun a b c -> calculateRemaining a.Value b.Value c.Value))
+        this.React ("Remaining", remaining) |> ignore
+        let txMonthAgo = WhenAnyMixin.WhenAny (this.Proxy, (fun x -> x.Transaction), (fun tx -> MonthAgo.monthAgo tx.Value.Date))
+        this.React ("MonthAgo", txMonthAgo) |> ignore
+        let txCalSpan = WhenAnyMixin.WhenAny ( this.Proxy
+                                             , (fun x -> x.Transaction)
+                                             , (fun x -> x.PaidDate)
+                                             , (fun tx paidDate -> Option.bind (fun x -> Some (CalendarSpan.calculate tx.Value.Date x)) paidDate.Value)
+                                             )
+        let cspan = this.React ("CalendarSpan", txCalSpan)
+        this.React ("MonthBetween", cspan |> Observable.map (Option.bind (fun x -> Some (MonthAgo.monthBetween x)))) |> ignore
+        let intVis = WhenAnyMixin.WhenAny (this.Proxy, (fun x -> x.TotalInterest), (fun ti -> if ti.Value <> 0m then Visibility.Visible else Visibility.Collapsed))
+        this.React ("InterestVisibility", intVis) |> ignore
+        let pdMonthAgo = WhenAnyMixin.WhenAny (this.Proxy
+                                              , (fun x -> x.PaidDate)
+                                              , (fun pd -> if pd.Value.IsSome then MonthAgo.monthAgo pd.Value.Value else "unpaid")
+                                              )
+        this.React ("PaidMonthAgo", pdMonthAgo) |> ignore
 
-    member this.Remaining with get () = match this.Contract.Transaction.Type with
-                                        | Debit    -> this.Contract.Transaction.Value + this.Contract.Interest + this.Contract.Paid
-                                        | _        -> 0m
-
-    member this.InterestVisibility with get () = if this.Contract.TotalInterest <> 0m then Visibility.Visible else Visibility.Collapsed
-
-    member this.MonthAgo with get () = MonthAgo.monthAgo this.Contract.Transaction.Date
-
-    member this.CalendarSpan with get () = match this.Contract.PaidDate with
-                                           | Some (date) -> Some (CalendarSpan.calculate this.Contract.Transaction.Date date)
-                                           | None        -> None
-
-    member this.MonthBetween with get () = match this.CalendarSpan with
-                                           | Some (span) -> MonthAgo.monthBetween span
-                                           | None        -> ""
-
-    member this.PaidMonthAgo with get () = if this.Contract.PaidDate.IsSome then MonthAgo.monthAgo this.Contract.PaidDate.Value else "unpaid"
+    member this.TrueRemaining with get () = calculateRemaining this.Proxy.Interest this.Proxy.Paid this.Proxy.Transaction // TODO: Is this a hacK?
 
     member this.Reset () =
-        this.Contract.Paid <- 0m
-        this.Contract.PaidDate <- None
-        this.Contract.Interest <- 0m
-        this.Contract.TotalInterest <- 0m
+        this.Proxy.Paid <- 0m
+        this.Proxy.PaidDate <- None
+        this.Proxy.Interest <- 0m
+        this.Proxy.TotalInterest <- 0m
 
-    member this.Interest interest = this.Contract.Interest      <- this.Contract.Interest      + interest
-                                    this.Contract.TotalInterest <- this.Contract.TotalInterest + interest
+    member this.Interest interest = this.Proxy.Interest      <- this.Proxy.Interest      + interest
+                                    this.Proxy.TotalInterest <- this.Proxy.TotalInterest + interest
 
-    member this.Pay credit date = let intamt = min -this.Contract.Interest credit
-                                  this.Contract.Interest <- this.Contract.Interest + intamt
-                                  let amt = min -this.Remaining (credit - intamt)
-                                  if amt > 0m && this.Remaining < 0m then this.Contract.Paid <- this.Contract.Paid + amt
-                                                                          this.Contract.PaidDate <- if this.Remaining = 0m then Some date else None
-                                                                          amt + intamt
-                                                                     else intamt
+    member this.Pay credit date = let intamt = min -this.Proxy.Interest credit
+                                  this.Proxy.Interest <- this.Proxy.Interest + intamt
+                                  let amt = min -this.TrueRemaining (credit - intamt)
+                                  if amt > 0m && this.TrueRemaining < 0m then this.Proxy.Paid <- this.Proxy.Paid + amt
+                                                                              this.Proxy.PaidDate <- if this.TrueRemaining = 0m then Some date else None
+                                                                              amt + intamt
+                                                                         else intamt

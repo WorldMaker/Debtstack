@@ -7,8 +7,8 @@ open System.Collections.ObjectModel
 open System.IO
 open System.Text.RegularExpressions
 open Microsoft.Win32
-open ImpromptuInterface.MVVM
 open ImpromptuInterface.FSharp
+open ReflexUX
 
 module Handler =
     exception LoadProblem of string
@@ -34,24 +34,24 @@ type IDebtstack =
     abstract member PaidTransactions : ObservableCollection<TransactionState> with get, set
 
 type Harness () as this =
-    inherit ImpromptuViewModel<IDebtstack> ()
+    inherit Reflex<IDebtstack> ()
 
     let mutable Source = list<TransactionState>.Empty
 
     do
-        this.Contract.Transactions     <- new ObservableCollection<TransactionState> ()
-        this.Contract.PaidTransactions <- new ObservableCollection<TransactionState> ()
+        this.Proxy.Transactions     <- new ObservableCollection<TransactionState> ()
+        this.Proxy.PaidTransactions <- new ObservableCollection<TransactionState> ()
 
     member this.TxCount with get () = Source.Length
 
-    member this.TxSum with get () = this.Contract.Transactions |> Seq.sumBy (fun tx -> tx.Remaining)
+    member this.TxSum with get () = this.Proxy.Transactions |> Seq.sumBy (fun tx -> tx.TrueRemaining)
 
-    member this.TxSimpleSum with get () = Source |> Seq.sumBy (fun tx -> tx.Contract.Transaction.Value)
+    member this.TxSimpleSum with get () = Source |> Seq.sumBy (fun tx -> tx.Proxy.Transaction.Value)
 
-    member this.TxInterest with get () = Source |> Seq.sumBy (fun tx -> tx.Contract.Interest)
+    member this.TxInterest with get () = Source |> Seq.sumBy (fun tx -> tx.Proxy.Interest)
 
-    member this.TxByCategory with get () = this.Contract.Transactions |> Seq.groupBy (fun tx -> tx.Contract.Transaction.Category)
-                                                                      |> Seq.map (fun (k, g) -> (k, g |> Seq.map (fun tx -> tx.Remaining) |> Seq.sum))
+    member this.TxByCategory with get () = this.Proxy.Transactions |> Seq.groupBy (fun tx -> tx.Proxy.Transaction.Category)
+                                                                   |> Seq.map (fun (k, g) -> (k, g |> Seq.map (fun tx -> tx.TrueRemaining) |> Seq.sum))
 
     member this.LoadTab (_ : obj) =
         let to_tx = fun (line : string) -> match line.Split('\t') |> Array.filter (fun x -> x <> String.Empty) |> Array.toList with
@@ -98,8 +98,8 @@ type Harness () as this =
         this.OnPropertyChanged "TxSimpleCount"
 
     member this.Reset (_ : obj) =
-        this.Contract.Transactions.Clear ()
-        this.Contract.PaidTransactions.Clear ()
+        this.Proxy.Transactions.Clear ()
+        this.Proxy.PaidTransactions.Clear ()
         Strategies.reset Source
 
     member this.Simple (_ : obj) =
@@ -111,15 +111,15 @@ type Harness () as this =
         this.Display ()
 
     member this.Display () =
-        this.Contract.Transactions.Clear ()
-        this.Contract.PaidTransactions.Clear ()
-        Source |> List.filter (fun tx -> tx.Remaining <> 0m)
-               |> List.map    this.Contract.Transactions.Add
+        this.Proxy.Transactions.Clear ()
+        this.Proxy.PaidTransactions.Clear ()
+        Source |> List.filter (fun tx -> tx.TrueRemaining <> 0m)
+               |> List.map    this.Proxy.Transactions.Add
                |> ignore
-        Source |> List.filter (fun tx -> tx.Contract.PaidDate.IsSome)
-               |> List.sortBy (fun tx -> (tx.Contract.PaidDate.Value, tx.Contract.Transaction.Value))
+        Source |> List.filter (fun tx -> tx.Proxy.PaidDate.IsSome)
+               |> List.sortBy (fun tx -> (tx.Proxy.PaidDate.Value, tx.Proxy.Transaction.Value))
                |> List.rev
-               |> List.map    this.Contract.PaidTransactions.Add
+               |> List.map    this.Proxy.PaidTransactions.Add
                |> ignore
         this.OnPropertyChanged "TxSum"
         this.OnPropertyChanged "TxInterest"
