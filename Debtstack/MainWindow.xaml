@@ -77,7 +77,7 @@
                 <DataGridTextColumn Header="" Binding="{Binding MonthAgo}"/>
                 <DataGridTextColumn Header="Paid" Binding="{Binding PaidDate.Value, StringFormat=d}"/>
                 <DataGridTextColumn Header="" Binding="{Binding PaidMonthAgo}"/>
-                <DataGridTextColumn Header="Paid In" Binding="{Binding MonthBetween}" SortMemberPath="CalendarSpan"/>
+                <DataGridTextColumn Header="Paid In" Binding="{Binding MonthBetween.Value}" SortMemberPath="CalendarSpan"/>
                 <DataGridTextColumn Header="Description" Binding="{Binding Transaction.Name}"/>
                 <DataGridTextColumn Header="Amount" Binding="{Binding Transaction.Value, StringFormat=c}"/>
                 <DataGridTextColumn Header="Interest" Binding="{Binding TotalInterest, StringFormat=c}"/>
