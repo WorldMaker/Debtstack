@@ -5,7 +5,7 @@
         Title="Debtstack" Height="450" Width="500">
     <Window.Resources>
         <my:Harness x:Key="Harness"/>
-        <DataTemplate DataType="{x:Type my:TransactionState}">
+        <DataTemplate DataType="{x:Type my:Book}">
             <Grid Margin="5" HorizontalAlignment="Stretch">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="75*"/>
@@ -16,18 +16,18 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                <TextBlock Text="{Binding Transaction.Name}" FontWeight="DemiBold"/>
+                <TextBlock Text="{Binding Current.Name}" FontWeight="DemiBold"/>
                 <WrapPanel Grid.Row="1">
-                    <TextBlock Text="{Binding Transaction.Category}" FontStyle="Italic"/>
+                    <TextBlock Text="{Binding Current.Category}" FontStyle="Italic"/>
                     <TextBlock Text=" "/>
-                    <TextBlock Text="{Binding MonthAgo}" Grid.Row="1"/>
+                    <TextBlock Text="{Binding Current.MonthAgo}" Grid.Row="1"/>
                 </WrapPanel>
-                <TextBlock Text="{Binding Remaining, StringFormat=c}" FontWeight="DemiBold" Grid.Column="1" Margin="5,0" TextAlignment="Right"/>
-                <TextBlock Text="{Binding Transaction.Value, StringFormat=c}" Grid.Column="1" Grid.Row="1" Margin="5,0" TextAlignment="Right"/>
-                <TextBlock Visibility="{Binding InterestVisibility}" Text="{Binding TotalInterest, StringFormat=c}" Foreground="Red" Grid.Column="1" Grid.Row="2" Margin="5,0" TextAlignment="Right"/>
-                <StackPanel Visibility="{Binding InterestVisibility}" Orientation="Horizontal" Grid.Row="2" HorizontalAlignment="Right">
+                <TextBlock Text="{Binding Current.Balance, StringFormat=c}" FontWeight="DemiBold" Grid.Column="1" Margin="5,0" TextAlignment="Right"/>
+                <TextBlock Text="{Binding Current.Initial.Amount, StringFormat=c}" Grid.Column="1" Grid.Row="1" Margin="5,0" TextAlignment="Right"/>
+                <TextBlock Visibility="{Binding Current.InterestVisibility}" Text="{Binding Current.TotalInterest, StringFormat=c}" Foreground="Red" Grid.Column="1" Grid.Row="2" Margin="5,0" TextAlignment="Right"/>
+                <StackPanel Visibility="{Binding Current.InterestVisibility}" Orientation="Horizontal" Grid.Row="2" HorizontalAlignment="Right">
                     <TextBlock Text="Interest" Margin="5,0"/>
-                    <TextBlock Text="{Binding Interest, StringFormat=c}" Margin="5,0"/>
+                    <TextBlock Text="{Binding Current.Interest, StringFormat=c}" Margin="5,0"/>
                 </StackPanel>
             </Grid>            
         </DataTemplate>
@@ -64,23 +64,23 @@
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="2*"/>
             </Grid.ColumnDefinitions>
-            <ListBox ItemsSource="{Binding Transactions}" Grid.Row="2" HorizontalContentAlignment="Stretch">
+            <ListBox ItemsSource="{Binding OpenBooks.View}" Grid.Row="2" HorizontalContentAlignment="Stretch">
             </ListBox>
             <chartingToolkit:Chart Grid.Column="2">
                 <chartingToolkit:PieSeries ItemsSource="{Binding TxByCategory}" IndependentValueBinding="{Binding Item1}" DependentValueBinding="{Binding Item2}"/>
             </chartingToolkit:Chart>
             <GridSplitter Grid.Column="1" VerticalAlignment="Stretch" HorizontalAlignment="Center" Width="4"/>
         </Grid>
-        <DataGrid Grid.Row="4" ItemsSource="{Binding PaidTransactions}" AutoGenerateColumns="False">
+        <DataGrid Grid.Row="4" ItemsSource="{Binding ClosedBooks.View}" AutoGenerateColumns="False">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Date" Binding="{Binding Transaction.Date, StringFormat=d}"/>
-                <DataGridTextColumn Header="" Binding="{Binding MonthAgo}"/>
-                <DataGridTextColumn Header="Paid" Binding="{Binding PaidDate.Value, StringFormat=d}"/>
-                <DataGridTextColumn Header="" Binding="{Binding PaidMonthAgo}"/>
-                <DataGridTextColumn Header="Paid In" Binding="{Binding MonthBetween.Value}" SortMemberPath="CalendarSpan"/>
-                <DataGridTextColumn Header="Description" Binding="{Binding Transaction.Name}"/>
-                <DataGridTextColumn Header="Amount" Binding="{Binding Transaction.Value, StringFormat=c}"/>
-                <DataGridTextColumn Header="Interest" Binding="{Binding TotalInterest, StringFormat=c}"/>
+                <DataGridTextColumn Header="Date" Binding="{Binding Current.Date, StringFormat=d}"/>
+                <DataGridTextColumn Header="" Binding="{Binding Current.MonthAgo}"/>
+                <DataGridTextColumn Header="Paid" Binding="{Binding Current.PaidDate.Value, StringFormat=d}"/>
+                <DataGridTextColumn Header="" Binding="{Binding Current.PaidMonthAgo}"/>
+                <DataGridTextColumn Header="Paid In" Binding="{Binding Current.MonthBetween.Value}" SortMemberPath="Current.CalendarSpan"/>
+                <DataGridTextColumn Header="Description" Binding="{Binding Current.Name}"/>
+                <DataGridTextColumn Header="Amount" Binding="{Binding Current.Initial.Amount, StringFormat=c}"/>
+                <DataGridTextColumn Header="Interest" Binding="{Binding Current.TotalInterest, StringFormat=c}"/>
             </DataGrid.Columns>
         </DataGrid>
         <GridSplitter Grid.Row="3" HorizontalAlignment="Stretch" VerticalAlignment="Center" Height="4"/>

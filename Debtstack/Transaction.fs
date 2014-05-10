@@ -4,9 +4,6 @@ namespace Debtstack
 
 open System
 open System.Windows
-open ImpromptuInterface.FSharp
-open ReactiveUI
-open ReflexUX
 
 type TransactionType =
     Adjustment
@@ -52,9 +49,3 @@ type Account = {
                                                | Some date -> MonthAgo.monthAgo date
                                                | None -> "unpaid"
 
-[<Interface>]
-type IBook =
-    abstract member Account : Account with get, set
-
-type Book () =
-    inherit Reflex<IBook> ()

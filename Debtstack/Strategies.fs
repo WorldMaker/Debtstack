@@ -64,7 +64,7 @@ module Strategies =
                                                                             , more
                                                                             , pay (from, next, amt) :: results)
                         | (from : Account), (next : Account) :: more, results -> payback (from, more, next :: results)
-                        | from, [], results when from.Balance > 0m -> raise (MoneyProblems "Payback failed")
+                        // | from, [], results when from.Balance > 0m -> raise (MoneyProblems "Payback failed")
                         | from, [], results -> from, results
 
         let rec interesting = function

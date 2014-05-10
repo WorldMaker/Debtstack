@@ -4,8 +4,11 @@ namespace Debtstack
 
 open System
 open System.Collections.ObjectModel
+open System.ComponentModel
 open System.IO
 open System.Text.RegularExpressions
+open System.Windows
+open System.Windows.Data
 open Microsoft.Win32
 open ImpromptuInterface.FSharp
 open ReflexUX
@@ -28,51 +31,82 @@ module Handler =
                    | Match "\$(?<amt>\-?[\d\,]+(\.\d+))" result -> Decimal.Parse result.["amt"]
                    | input -> Decimal.Parse input
 
+
+[<Interface>]
+type IBook =
+    abstract member Current : Account with get, set
+    abstract member Simple : Account with get, set
+    abstract member Proportional : Account with get, set
+
+type Book (initial : Account) as this =
+    inherit Reflex<IBook> ()
+
+    do
+        this.Proxy.Current <- initial
+
 [<Interface>]
 type IDebtstack =
-    abstract member Transactions     : ObservableCollection<TransactionState> with get, set
-    abstract member PaidTransactions : ObservableCollection<TransactionState> with get, set
+    abstract member Books : ObservableCollection<Book> with get, set
+    abstract member OpenBooks : CollectionViewSource with get, set
+    abstract member ClosedBooks : CollectionViewSource with get, set
 
 type Harness () as this =
     inherit Reflex<IDebtstack> ()
 
-    let mutable Source = list<TransactionState>.Empty
+    let mutable Source = list<Account>.Empty
+    let mutable Shelf = Map.empty<Transaction, Book>
 
     do
-        this.Proxy.Transactions     <- new ObservableCollection<TransactionState> ()
-        this.Proxy.PaidTransactions <- new ObservableCollection<TransactionState> ()
+        this.Proxy.Books <- new ObservableCollection<Book> ()
+        this.Proxy.OpenBooks <- new CollectionViewSource ()
+        this.Proxy.OpenBooks.Source <- this.Proxy.Books
+        this.Proxy.OpenBooks.Filter.Add (fun e -> e.Accepted <- match e.Item with
+                                                                | :? Book as book -> book.Proxy.Current.PaidDate.IsNone
+                                                                | _ -> false)
+        this.Proxy.OpenBooks.SortDescriptions.Add (new SortDescription ("Current.CalendarSpan", ListSortDirection.Descending));
+        this.Proxy.ClosedBooks <- new CollectionViewSource ()
+        this.Proxy.ClosedBooks.Source <- this.Proxy.Books
+        this.Proxy.ClosedBooks.Filter.Add (fun e -> e.Accepted <- match e.Item with
+                                                                  | :? Book as book -> book.Proxy.Current.PaidDate.IsSome
+                                                                  | _ -> false)
+        this.Proxy.ClosedBooks.SortDescriptions.Add (new SortDescription ("Current.PaidDate", ListSortDirection.Descending));
 
     member this.TxCount with get () = Source.Length
 
-    member this.TxSum with get () = this.Proxy.Transactions |> Seq.sumBy (fun tx -> tx.TrueRemaining)
+    member this.TxSum with get () = this.Proxy.Books |> Seq.sumBy (fun book -> book.Proxy.Current.Balance)
 
-    member this.TxSimpleSum with get () = Source |> Seq.sumBy (fun tx -> tx.Proxy.Transaction.Value)
+    member this.TxInterest with get () = this.Proxy.Books |> Seq.sumBy (fun book -> book.Proxy.Current.Interest)
 
-    member this.TxInterest with get () = Source |> Seq.sumBy (fun tx -> tx.Proxy.Interest)
-
-    member this.TxByCategory with get () = this.Proxy.Transactions |> Seq.groupBy (fun tx -> tx.Proxy.Transaction.Category)
-                                                                   |> Seq.map (fun (k, g) -> (k, g |> Seq.map (fun tx -> tx.TrueRemaining) |> Seq.sum))
+    member this.TxByCategory with get () = this.Proxy.Books |> Seq.filter (fun book -> book.Proxy.Current.PaidDate.IsNone)
+                                                            |> Seq.groupBy (fun tx -> tx.Proxy.Current.Category)
+                                                            |> Seq.map (fun (k, g) -> k, g |> Seq.map (fun book -> book.Proxy.Current.Balance) |> Seq.sum)
 
     member this.LoadTab (_ : obj) =
-        let to_tx = fun (line : string) -> match line.Split('\t') |> Array.filter (fun x -> x <> String.Empty) |> Array.toList with
-                                           | d :: n :: a :: xs -> let amt = Handler.readAcct a
-                                                                  let t = if n.StartsWith ("Interest", StringComparison.OrdinalIgnoreCase) then Interest
-                                                                          elif amt > 0m then Credit
-                                                                          else Debit
-                                                                  Some { Type = t; Name = n; Date = DateTime.Parse (d); Value = amt; Category = String.Empty; }
-                                           | _ -> None
+        let to_acct = fun (line : string) -> match line.Split('\t') |> Array.filter (fun x -> x <> String.Empty) |> Array.toList with
+                                             | d :: n :: a :: xs -> let amt = Handler.readAcct a
+                                                                    let t = if n.StartsWith ("Interest", StringComparison.OrdinalIgnoreCase) then Interest
+                                                                            elif amt > 0m then Credit
+                                                                            else Debit
+                                                                    let tx = { Type = Initial; Name = n; Date = DateTime.Parse (d); Amount = amt; }
+                                                                    Some { Type = t; Initial = tx; Name = n; Date = tx.Date; Category = String.Empty; Transactions = [tx] }
+                                             | _ -> None
 
         let dialog = new OpenFileDialog ()
         let result = dialog.ShowDialog ()
 
         if result.HasValue && result.Value then Source <- File.ReadAllLines (dialog.FileName)
-                                                |> Array.filter (fun line -> line <> String.Empty)
-                                                |> Array.map    to_tx
-                                                |> Array.filter Option.isSome
-                                                |> Array.map    (fun tx -> new TransactionState (tx.Value))
-                                                |> List.ofArray
+                                                |> Seq.filter (fun line -> line <> String.Empty)
+                                                |> Seq.map    to_acct
+                                                |> Seq.filter Option.isSome
+                                                |> Seq.map    (fun x -> x.Value)
+                                                |> List.ofSeq
+
+                                                this.Proxy.Books.Clear ()
+                                                for acct in Source do
+                                                    this.Proxy.Books.Add (new Book (acct))
+
+                                                Shelf <- this.Proxy.Books |> Seq.map (fun book -> book.Proxy.Current.Initial, book) |> Map.ofSeq
         this.OnPropertyChanged "TxCount"
-        this.OnPropertyChanged "TxSimpleSum"
 
     member this.LoadMint (_ : obj) =
         let dialog = new OpenFileDialog ()
@@ -92,35 +126,34 @@ type Harness () as this =
                                                                  | _        -> raise (Handler.LoadProblem "Unknown transaction type")
                                                     let amt = Decimal.Parse (csv.["Amount"])
                                                     let value = if t = Credit then amt else -amt
-                                                    let tx = new TransactionState ({ Type = t; Name = name; Date = DateTime.Parse (csv.["Date"]); Value = value; Category = csv.["Category"]; })
-                                                    Source <- tx :: Source
-        this.OnPropertyChanged "TxCount"
-        this.OnPropertyChanged "TxSimpleCount"
+                                                    let tx = { Type = Initial; Name = name; Date = DateTime.Parse (csv.["Date"]); Amount = value; }
+                                                    let acct = { Type = t; Initial = tx; Name = name; Date = tx.Date; Category = csv.["Category"]; Transactions = [tx] }
+                                                    Source <- acct :: Source
 
-    member this.Reset (_ : obj) =
-        this.Proxy.Transactions.Clear ()
-        this.Proxy.PaidTransactions.Clear ()
-        Strategies.reset Source
+                                                    this.Proxy.Books.Clear ()
+                                                    for acct in Source do
+                                                        this.Proxy.Books.Add (new Book (acct))
+
+                                                    Shelf <- this.Proxy.Books |> Seq.map (fun book -> book.Proxy.Current.Initial, book) |> Map.ofSeq
+        this.OnPropertyChanged "TxCount"
 
     member this.Simple (_ : obj) =
-        Strategies.simpleStack Source
+        let openaccts, closedaccts = Strategies.simpleStack Source
+        for acct in Seq.append openaccts closedaccts do
+            (Shelf.Item (acct.Initial)).Proxy.Simple <- acct
+            (Shelf.Item (acct.Initial)).Proxy.Current <- acct
         this.Display ()
 
     member this.Proportional (_ : obj) =
-        Strategies.favorTheOld Source
+        let openaccts, closedaccts = Strategies.favorTheOld Source
+        for acct in Seq.append openaccts closedaccts do
+            (Shelf.Item (acct.Initial)).Proxy.Proportional <- acct
+            (Shelf.Item (acct.Initial)).Proxy.Current <- acct
         this.Display ()
 
     member this.Display () =
-        this.Proxy.Transactions.Clear ()
-        this.Proxy.PaidTransactions.Clear ()
-        Source |> List.filter (fun tx -> tx.TrueRemaining <> 0m)
-               |> List.map    this.Proxy.Transactions.Add
-               |> ignore
-        Source |> List.filter (fun tx -> tx.Proxy.PaidDate.IsSome)
-               |> List.sortBy (fun tx -> (tx.Proxy.PaidDate.Value, tx.Proxy.Transaction.Value))
-               |> List.rev
-               |> List.map    this.Proxy.PaidTransactions.Add
-               |> ignore
+        this.Proxy.OpenBooks.View.Refresh ()
+        this.Proxy.ClosedBooks.View.Refresh ()
         this.OnPropertyChanged "TxSum"
         this.OnPropertyChanged "TxInterest"
         this.OnPropertyChanged "TxByCategory"
