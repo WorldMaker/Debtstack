@@ -9,72 +9,52 @@ open ReactiveUI
 open ReflexUX
 
 type TransactionType =
-    Debit
-    | Credit
+    Adjustment
+    | Initial
     | Interest
+    | InterestPaid
 
 type Transaction = {
     Type: TransactionType;
     Name: string;
-    Value: decimal;
+    Amount: decimal;
     Date: DateTime;
-    Category: string;
     }
 
+type AccountType =
+    Debit
+    | Credit
+    | Interest
+
+type Account = {
+    Type: AccountType;
+    Initial: Transaction;
+    Name: string;
+    Category: string;
+    Date: DateTime;
+    Transactions: list<Transaction>;
+    }
+    with
+        member this.Balance with get () = this.Transactions |> List.sumBy (fun tx -> tx.Amount)
+        member this.TotalInterest with get () = this.Transactions |> List.filter (fun tx -> tx.Type = TransactionType.Interest) |> List.sumBy (fun tx -> tx.Amount)
+        member this.PaidInterest with get () = this.Transactions |> List.filter (fun tx -> tx.Type = TransactionType.InterestPaid) |> List.sumBy (fun tx -> tx.Amount)
+        member this.Interest with get () = this.TotalInterest - this.PaidInterest
+        member this.PaidDate with get () = match this.Balance with
+                                           | 0m -> Some this.Transactions.Head.Date
+                                           | _ -> None
+        member this.MonthAgo with get () = MonthAgo.monthAgo (this.Transactions.Head.Date)
+        member this.CalendarSpan with get () = Option.bind (Some << CalendarSpan.calculate this.Date) this.PaidDate
+        member this.MonthBetween with get () = Option.bind (Some << MonthAgo.monthBetween) this.CalendarSpan
+        member this.InterestVisibility with get () = match this.Interest with
+                                                     | 0m -> Visibility.Collapsed
+                                                     | _ -> Visibility.Visible
+        member this.PaidMonthAgo with get () = match this.PaidDate with
+                                               | Some date -> MonthAgo.monthAgo date
+                                               | None -> "unpaid"
+
 [<Interface>]
-type ITransactionState =
-    abstract member Transaction : Transaction with get, set
-    abstract member Paid : decimal with get, set
-    abstract member PaidDate : DateTime option with get, set
-    abstract member Interest : decimal with get, set
-    abstract member TotalInterest : decimal with get, set
+type IBook =
+    abstract member Account : Account with get, set
 
-type TransactionState (tx : Transaction) as this =
-    inherit Reflex<ITransactionState> ()
-
-    let calculateRemaining (interest : decimal) (paid : decimal) (tx : Transaction) = match tx.Type with
-                                                                                      | Debit -> tx.Value + interest + paid
-                                                                                      | _     -> 0m
-
-    do
-        this.Proxy.Interest <- 0m
-        this.Proxy.Transaction <- tx
-        this.Proxy.Paid <- 0m
-        this.Proxy.PaidDate <- None
-        let remaining = WhenAnyMixin.WhenAny (this.Proxy, (fun x -> x.Interest), (fun x -> x.Paid), (fun x -> x.Transaction), (fun a b c -> calculateRemaining a.Value b.Value c.Value))
-        this.React ("Remaining", remaining) |> ignore
-        let txMonthAgo = WhenAnyMixin.WhenAny (this.Proxy, (fun x -> x.Transaction), (fun tx -> MonthAgo.monthAgo tx.Value.Date))
-        this.React ("MonthAgo", txMonthAgo) |> ignore
-        let txCalSpan = WhenAnyMixin.WhenAny ( this.Proxy
-                                             , (fun x -> x.Transaction)
-                                             , (fun x -> x.PaidDate)
-                                             , (fun tx paidDate -> Option.bind (fun x -> Some (CalendarSpan.calculate tx.Value.Date x)) paidDate.Value)
-                                             )
-        let cspan = this.React ("CalendarSpan", txCalSpan)
-        this.React ("MonthBetween", cspan |> Observable.map (Option.bind (fun x -> Some (MonthAgo.monthBetween x)))) |> ignore
-        let intVis = WhenAnyMixin.WhenAny (this.Proxy, (fun x -> x.TotalInterest), (fun ti -> if ti.Value <> 0m then Visibility.Visible else Visibility.Collapsed))
-        this.React ("InterestVisibility", intVis) |> ignore
-        let pdMonthAgo = WhenAnyMixin.WhenAny (this.Proxy
-                                              , (fun x -> x.PaidDate)
-                                              , (fun pd -> if pd.Value.IsSome then MonthAgo.monthAgo pd.Value.Value else "unpaid")
-                                              )
-        this.React ("PaidMonthAgo", pdMonthAgo) |> ignore
-
-    member this.TrueRemaining with get () = calculateRemaining this.Proxy.Interest this.Proxy.Paid this.Proxy.Transaction // TODO: Is this a hacK?
-
-    member this.Reset () =
-        this.Proxy.Paid <- 0m
-        this.Proxy.PaidDate <- None
-        this.Proxy.Interest <- 0m
-        this.Proxy.TotalInterest <- 0m
-
-    member this.Interest interest = this.Proxy.Interest      <- this.Proxy.Interest      + interest
-                                    this.Proxy.TotalInterest <- this.Proxy.TotalInterest + interest
-
-    member this.Pay credit date = let intamt = min -this.Proxy.Interest credit
-                                  this.Proxy.Interest <- this.Proxy.Interest + intamt
-                                  let amt = min -this.TrueRemaining (credit - intamt)
-                                  if amt > 0m && this.TrueRemaining < 0m then this.Proxy.Paid <- this.Proxy.Paid + amt
-                                                                              this.Proxy.PaidDate <- if this.TrueRemaining = 0m then Some date else None
-                                                                              amt + intamt
-                                                                         else intamt
+type Book () =
+    inherit Reflex<IBook> ()
