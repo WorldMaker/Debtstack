@@ -44,6 +44,5 @@
                 <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=c}"/>
             </DataGrid.Columns>
         </DataGrid>
-        <GridSplitter Grid.Row="3" HorizontalAlignment="Stretch" VerticalAlignment="Center" Height="4"/>
     </Grid>
 </Window>
