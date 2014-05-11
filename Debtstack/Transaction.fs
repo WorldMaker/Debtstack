@@ -42,7 +42,7 @@ type Account = {
         member this.MonthAgo with get () = MonthAgo.monthAgo (this.Date)
         member this.CalendarSpan with get () = Option.bind (Some << CalendarSpan.calculate this.Date) this.PaidDate
         member this.MonthBetween with get () = Option.bind (Some << MonthAgo.monthBetween) this.CalendarSpan
-        member this.InterestVisibility with get () = match this.Interest with
+        member this.InterestVisibility with get () = match this.TotalInterest with
                                                      | 0m -> Visibility.Collapsed
                                                      | _ -> Visibility.Visible
         member this.PaidMonthAgo with get () = match this.PaidDate with
