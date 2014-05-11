@@ -46,14 +46,14 @@ module Strategies =
 
         let rec screen = function
                        | (acct : Account) :: accts, stack, results -> match acct.Type with
-                                                                      | Debit    -> screen (accts, acct :: stack, results)
-                                                                      | Interest -> let amt = roundpenny (acct.Balance / (decimal stack.Length))
-                                                                                    let acct, stack = interesting (acct, amt, stack, [])
-                                                                                    screen (accts, List.rev stack, acct :: results)
-                                                                      | Credit   -> let acct, stack = payback (acct, stack, [])
-                                                                                    screen (accts
-                                                                                           , stack |> List.filter (fun x -> x.PaidDate.IsNone) |> List.rev
-                                                                                           , acct :: (stack |> List.filter (fun x -> x.PaidDate.IsSome) |> List.append results))
+                                                                      | AccountType.Debit    -> screen (accts, acct :: stack, results)
+                                                                      | AccountType.Interest -> let amt = roundpenny (acct.Balance / (decimal stack.Length))
+                                                                                                let acct, stack = interesting (acct, amt, stack, [])
+                                                                                                screen (accts, List.rev stack, acct :: results)
+                                                                      | AccountType.Credit   -> let acct, stack = payback (acct, stack, [])
+                                                                                                screen (accts
+                                                                                                       , stack |> List.filter (fun x -> x.PaidDate.IsNone) |> List.rev
+                                                                                                       , acct :: (stack |> List.filter (fun x -> x.PaidDate.IsSome) |> List.append results))
                        | [], stack, results                        -> stack, results
         screen (accts, [], [])
 
@@ -71,17 +71,17 @@ module Strategies =
 
         let rec screen = function
                        | (acct : Account) :: accts, stack, results -> match acct.Type with
-                                                                      | Debit    -> screen (accts, acct :: stack, results)
-                                                                      | Interest -> let amt = roundpenny (acct.Balance / (decimal stack.Length))
-                                                                                    let acct, stack = interesting (acct, amt, stack, [])
-                                                                                    screen (accts, List.rev stack, acct :: results)
-                                                                      | Credit   -> let mutable curAcct, curStack, curResults = acct, stack, results
-                                                                                    while curAcct.Balance > 0m do
-                                                                                        let acct, stack = payback (curAcct, curStack, [])
-                                                                                        curAcct <- acct
-                                                                                        curStack <- stack |> List.filter (fun x -> x.PaidDate.IsNone) |> List.rev
-                                                                                        curResults <- stack |> List.filter (fun x -> x.PaidDate.IsSome) |> List.append curResults
-                                                                                    screen (accts, curStack, curAcct :: curResults)
+                                                                      | AccountType.Debit    -> screen (accts, acct :: stack, results)
+                                                                      | AccountType.Interest -> let amt = roundpenny (acct.Balance / (decimal stack.Length))
+                                                                                                let acct, stack = interesting (acct, amt, stack, [])
+                                                                                                screen (accts, List.rev stack, acct :: results)
+                                                                      | AccountType.Credit   -> let mutable curAcct, curStack, curResults = acct, stack, results
+                                                                                                while curAcct.Balance > 0m do
+                                                                                                    let acct, stack = payback (curAcct, curStack, [])
+                                                                                                    curAcct <- acct
+                                                                                                    curStack <- stack |> List.filter (fun x -> x.PaidDate.IsNone) |> List.rev
+                                                                                                    curResults <- stack |> List.filter (fun x -> x.PaidDate.IsSome) |> List.append curResults
+                                                                                                screen (accts, curStack, curAcct :: curResults)
                        | [], stack, results                        -> stack, results
         screen (accts, [], [])
 

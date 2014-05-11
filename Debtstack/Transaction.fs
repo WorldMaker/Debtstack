@@ -6,10 +6,10 @@ open System
 open System.Windows
 
 type TransactionType =
-    Adjustment
-    | Initial
-    | Interest
-    | InterestPaid
+    | Adjustment = 0
+    | Initial = 1
+    | Interest = 2
+    | InterestPaid = 3
 
 type Transaction = {
     Type: TransactionType;
@@ -19,9 +19,9 @@ type Transaction = {
     }
 
 type AccountType =
-    Debit
-    | Credit
-    | Interest
+    | Debit = 0
+    | Credit = 1
+    | Interest = 2
 
 type Account = {
     Type: AccountType;

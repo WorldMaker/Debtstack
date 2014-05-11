@@ -7,6 +7,9 @@
         <my:Harness x:Key="Harness"/>
         <DataTemplate DataType="{x:Type my:Book}">
             <Grid Margin="5" HorizontalAlignment="Stretch">
+                <Grid.InputBindings>
+                    <MouseBinding Gesture="LeftDoubleClick" Command="{Binding Command.ShowAccountDetails}"/>
+                </Grid.InputBindings>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="75*"/>
                     <ColumnDefinition Width="25*"/>
@@ -71,7 +74,7 @@
             </chartingToolkit:Chart>
             <GridSplitter Grid.Column="1" VerticalAlignment="Stretch" HorizontalAlignment="Center" Width="4"/>
         </Grid>
-        <DataGrid Grid.Row="4" ItemsSource="{Binding ClosedBooks.View}" AutoGenerateColumns="False">
+        <DataGrid Grid.Row="4" IsReadOnly="True" ItemsSource="{Binding ClosedBooks.View}" AutoGenerateColumns="False">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Date" Binding="{Binding Current.Date, StringFormat=d}"/>
                 <DataGridTextColumn Header="" Binding="{Binding Current.MonthAgo}"/>
@@ -81,6 +84,13 @@
                 <DataGridTextColumn Header="Description" Binding="{Binding Current.Name}"/>
                 <DataGridTextColumn Header="Amount" Binding="{Binding Current.Initial.Amount, StringFormat=c}"/>
                 <DataGridTextColumn Header="Interest" Binding="{Binding Current.TotalInterest, StringFormat=c}"/>
+                <DataGridTemplateColumn Header="Details">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="Details" Command="{Binding Command.ShowAccountDetails}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
         <GridSplitter Grid.Row="3" HorizontalAlignment="Stretch" VerticalAlignment="Center" Height="4"/>

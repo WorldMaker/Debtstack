@@ -44,6 +44,11 @@ type Book (initial : Account) as this =
     do
         this.Proxy.Current <- initial
 
+    member this.ShowAccountDetails (arg: Object) =
+        let acctWindow = Application.LoadComponent(new System.Uri("/Debtstack;component/accountwindow.xaml", UriKind.Relative)) :?> Window
+        acctWindow.DataContext <- this.Proxy.Current
+        acctWindow.Show ()
+
 [<Interface>]
 type IDebtstack =
     abstract member Books : ObservableCollection<Book> with get, set
@@ -84,10 +89,10 @@ type Harness () as this =
     member this.LoadTab (_ : obj) =
         let to_acct = fun (line : string) -> match line.Split('\t') |> Array.filter (fun x -> x <> String.Empty) |> Array.toList with
                                              | d :: n :: a :: xs -> let amt = Handler.readAcct a
-                                                                    let t = if n.StartsWith ("Interest", StringComparison.OrdinalIgnoreCase) then Interest
-                                                                            elif amt > 0m then Credit
-                                                                            else Debit
-                                                                    let tx = { Type = Initial; Name = n; Date = DateTime.Parse (d); Amount = amt; }
+                                                                    let t = if n.StartsWith ("Interest", StringComparison.OrdinalIgnoreCase) then AccountType.Interest
+                                                                            elif amt > 0m then AccountType.Credit
+                                                                            else AccountType.Debit
+                                                                    let tx = { Type = TransactionType.Initial; Name = n; Date = DateTime.Parse (d); Amount = amt; }
                                                                     Some { Type = t; Initial = tx; Name = n; Date = tx.Date; Category = String.Empty; Transactions = [tx] }
                                              | _ -> None
 
@@ -120,14 +125,14 @@ type Harness () as this =
                                                 while csv.Read () do
                                                   if not (csv.["Category"].StartsWith ("Exclude", StringComparison.OrdinalIgnoreCase)) then
                                                     let name = csv.["Description"]
-                                                    let t = if name.IndexOf ("Interest", StringComparison.OrdinalIgnoreCase) >= 0 then Interest
+                                                    let t = if name.IndexOf ("Interest", StringComparison.OrdinalIgnoreCase) >= 0 then AccountType.Interest
                                                             else match csv.["Transaction Type"] with
-                                                                 | "debit"  -> Debit
-                                                                 | "credit" -> Credit
+                                                                 | "debit"  -> AccountType.Debit
+                                                                 | "credit" -> AccountType.Credit
                                                                  | _        -> raise (Handler.LoadProblem "Unknown transaction type")
                                                     let amt = Decimal.Parse (csv.["Amount"])
-                                                    let value = if t = Credit then amt else -amt
-                                                    let tx = { Type = Initial; Name = name; Date = DateTime.Parse (csv.["Date"]); Amount = value; }
+                                                    let value = if t = AccountType.Credit then amt else -amt
+                                                    let tx = { Type = TransactionType.Initial; Name = name; Date = DateTime.Parse (csv.["Date"]); Amount = value; }
                                                     let acct = { Type = t; Initial = tx; Name = name; Date = tx.Date; Category = csv.["Category"]; Transactions = [tx] }
                                                     Source <- acct :: Source
 

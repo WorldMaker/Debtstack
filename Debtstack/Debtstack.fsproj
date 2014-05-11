@@ -59,6 +59,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Resource>
+    <Resource Include="AccountWindow.xaml" />
     <Compile Include="MonthAgo.fs" />
     <Compile Include="Transaction.fs" />
     <Compile Include="Strategies.fs" />
