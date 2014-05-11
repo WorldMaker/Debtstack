@@ -63,7 +63,7 @@ type Harness () as this =
         this.Proxy.OpenBooks.Filter.Add (fun e -> e.Accepted <- match e.Item with
                                                                 | :? Book as book -> book.Proxy.Current.PaidDate.IsNone
                                                                 | _ -> false)
-        this.Proxy.OpenBooks.SortDescriptions.Add (new SortDescription ("Current.CalendarSpan", ListSortDirection.Descending));
+        this.Proxy.OpenBooks.SortDescriptions.Add (new SortDescription ("Current.Date", ListSortDirection.Ascending));
         this.Proxy.ClosedBooks <- new CollectionViewSource ()
         this.Proxy.ClosedBooks.Source <- this.Proxy.Books
         this.Proxy.ClosedBooks.Filter.Add (fun e -> e.Accepted <- match e.Item with

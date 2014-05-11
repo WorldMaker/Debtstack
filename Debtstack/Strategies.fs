@@ -19,6 +19,19 @@ module Strategies =
         | from, (acct : Account), amt when acct.Interest < 0m -> adjust acct { Type = TransactionType.InterestPaid; Name = from.Name; Amount = amt; Date = from.Date }
         | from, (acct : Account), amt -> adjust acct { Type = TransactionType.Adjustment; Name = from.Name; Amount = amt; Date = from.Date }
 
+    
+    let rec interesting = function
+            | from, amt, [next], results -> (adjust from { Type = TransactionType.Adjustment; Name = next.Name; Amount = -from.Balance; Date = from.Date }
+                                            , adjust next { Type = TransactionType.Interest; Name = from.Name; Amount = from.Balance; Date = from.Date } :: results)
+            | (from : Account), amt, (next : Account) :: more, results 
+                when from.Balance < 0m -> interesting (adjust from { Type = TransactionType.Adjustment; Name = next.Name; Amount = -amt; Date = from.Date }
+                                                        , amt
+                                                        , more
+                                                        , adjust next { Type = TransactionType.Interest; Name = from.Name; Amount = amt; Date = from.Date } :: results)
+            | (from : Account), amt, (next : Account) :: more, results -> interesting (from, amt, more, next :: results)
+            | from, _, [], results when from.Balance < 0m -> raise (MoneyProblems "Interest failed")
+            | from, _, [], results -> from, results
+
     let simpleStack (accts : list<Account>) =
         let rec payback = function
                         | (from : Account), (next : Account) :: more, results 
@@ -30,17 +43,6 @@ module Strategies =
                         | (from : Account), (next : Account) :: more, results -> payback (from, more, next :: results)
                         | from, [], results when from.Balance > 0m -> raise (MoneyProblems "Payback failed")
                         | from, [], results -> from, results
-
-        let rec interesting = function
-                | (from : Account), amt, (next : Account) :: more, results 
-                    when from.Balance < 0m -> interesting (adjust from { Type = TransactionType.Adjustment; Name = next.Name; Amount = -amt; Date = from.Date }
-                                                          , amt
-                                                          , more
-                                                          , adjust next { Type = TransactionType.Interest; Name = from.Name; Amount = amt; Date = from.Date } :: results)
-                | (from : Account), amt, (next : Account) :: more, results -> payback (from, more, next :: results)
-                | from, amt, next :: [], results -> (adjust from { Type = TransactionType.Adjustment; Name = next.Name; Amount = -from.Balance; Date = from.Date }
-                                                    , adjust next { Type = TransactionType.Interest; Name = from.Name; Amount = from.Balance; Date = from.Date } :: results)
-                | from, _, [], results -> from, results
 
         let rec screen = function
                        | (acct : Account) :: accts, stack, results -> match acct.Type with
@@ -66,17 +68,6 @@ module Strategies =
                         | (from : Account), (next : Account) :: more, results -> payback (from, more, next :: results)
                         // | from, [], results when from.Balance > 0m -> raise (MoneyProblems "Payback failed")
                         | from, [], results -> from, results
-
-        let rec interesting = function
-                | (from : Account), amt, (next : Account) :: more, results 
-                    when from.Balance < 0m -> interesting (adjust from { Type = TransactionType.Adjustment; Name = next.Name; Amount = -amt; Date = from.Date }
-                                                          , amt
-                                                          , more
-                                                          , adjust next { Type = TransactionType.Interest; Name = from.Name; Amount = amt; Date = from.Date } :: results)
-                | (from : Account), amt, (next : Account) :: more, results -> payback (from, more, next :: results)
-                | from, amt, next :: [], results -> (adjust from { Type = TransactionType.Adjustment; Name = next.Name; Amount = -from.Balance; Date = from.Date }
-                                                    , adjust next { Type = TransactionType.Interest; Name = from.Name; Amount = from.Balance; Date = from.Date } :: results)
-                | from, _, [], results -> from, results
 
         let rec screen = function
                        | (acct : Account) :: accts, stack, results -> match acct.Type with
