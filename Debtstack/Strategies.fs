@@ -12,22 +12,22 @@ module Strategies =
     let adjust acct tx = { acct with Transactions = tx :: acct.Transactions }
 
     let pay = function
-        | from, (acct : Account), amt when acct.Interest < 0m && abs acct.Interest < amt -> let txs = { Type = TransactionType.Adjustment; Name = from.Name; Amount = amt + acct.Interest; Date = from.Date }
-                                                                                                    :: { Type = TransactionType.InterestPaid; Name = from.Name; Amount = -acct.Interest; Date = from.Date }
+        | from, (acct : Account), amt when acct.Interest < 0m && abs acct.Interest < amt -> let txs = { Type = TransactionType.Adjustment; Name = from.Name; Amount = amt + acct.Interest; Date = from.Date; Key = 0 }
+                                                                                                    :: { Type = TransactionType.InterestPaid; Name = from.Name; Amount = -acct.Interest; Date = from.Date; Key = 0 }
                                                                                                     :: acct.Transactions
                                                                                             { acct with Transactions = txs }
-        | from, (acct : Account), amt when acct.Interest < 0m -> adjust acct { Type = TransactionType.InterestPaid; Name = from.Name; Amount = amt; Date = from.Date }
-        | from, (acct : Account), amt -> adjust acct { Type = TransactionType.Adjustment; Name = from.Name; Amount = amt; Date = from.Date }
+        | from, (acct : Account), amt when acct.Interest < 0m -> adjust acct { Type = TransactionType.InterestPaid; Name = from.Name; Amount = amt; Date = from.Date; Key = 0 }
+        | from, (acct : Account), amt -> adjust acct { Type = TransactionType.Adjustment; Name = from.Name; Amount = amt; Date = from.Date; Key = 0 }
 
     
     let rec interesting = function
-            | from, amt, [next], results -> (adjust from { Type = TransactionType.Adjustment; Name = next.Name; Amount = -from.Balance; Date = from.Date }
-                                            , adjust next { Type = TransactionType.Interest; Name = from.Name; Amount = from.Balance; Date = from.Date } :: results)
+            | from, amt, [next], results -> (adjust from { Type = TransactionType.Adjustment; Name = next.Name; Amount = -from.Balance; Date = from.Date; Key = 0 }
+                                            , adjust next { Type = TransactionType.Interest; Name = from.Name; Amount = from.Balance; Date = from.Date; Key = 0 } :: results)
             | (from : Account), amt, (next : Account) :: more, results 
-                when from.Balance < 0m -> interesting (adjust from { Type = TransactionType.Adjustment; Name = next.Name; Amount = -amt; Date = from.Date }
+                when from.Balance < 0m -> interesting (adjust from { Type = TransactionType.Adjustment; Name = next.Name; Amount = -amt; Date = from.Date; Key = 0 }
                                                         , amt
                                                         , more
-                                                        , adjust next { Type = TransactionType.Interest; Name = from.Name; Amount = amt; Date = from.Date } :: results)
+                                                        , adjust next { Type = TransactionType.Interest; Name = from.Name; Amount = amt; Date = from.Date; Key = 0 } :: results)
             | (from : Account), amt, (next : Account) :: more, results -> interesting (from, amt, more, next :: results)
             | from, _, [], results when from.Balance < 0m -> raise (MoneyProblems "Interest failed")
             | from, _, [], results -> from, results
@@ -37,7 +37,7 @@ module Strategies =
                         | (from : Account), (next : Account) :: more, results 
                           when from.Balance > 0m && next.Balance < 0m -> let bal = abs next.Balance
                                                                          let amt = min from.Balance bal
-                                                                         payback (adjust from { Type = TransactionType.Adjustment; Name = next.Name; Amount = -amt; Date = from.Date }
+                                                                         payback (adjust from { Type = TransactionType.Adjustment; Name = next.Name; Amount = -amt; Date = from.Date; Key = 0 }
                                                                             , more
                                                                             , pay (from, next, amt) :: results)
                         | (from : Account), (next : Account) :: more, results -> payback (from, more, next :: results)
@@ -62,7 +62,7 @@ module Strategies =
                         | (from : Account), (next : Account) :: more, results 
                           when from.Balance > 0m && next.Balance < 0m -> let bal = abs next.Balance
                                                                          let amt = min (roundpenny (from.Balance / (decimal more.Length + 1m))) bal
-                                                                         payback (adjust from { Type = TransactionType.Adjustment; Name = next.Name; Amount = -amt; Date = from.Date }
+                                                                         payback (adjust from { Type = TransactionType.Adjustment; Name = next.Name; Amount = -amt; Date = from.Date; Key = 0 }
                                                                             , more
                                                                             , pay (from, next, amt) :: results)
                         | (from : Account), (next : Account) :: more, results -> payback (from, more, next :: results)

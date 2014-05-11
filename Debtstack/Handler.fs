@@ -92,7 +92,7 @@ type Harness () as this =
                                                                     let t = if n.StartsWith ("Interest", StringComparison.OrdinalIgnoreCase) then AccountType.Interest
                                                                             elif amt > 0m then AccountType.Credit
                                                                             else AccountType.Debit
-                                                                    let tx = { Type = TransactionType.Initial; Name = n; Date = DateTime.Parse (d); Amount = amt; }
+                                                                    let tx = { Type = TransactionType.Initial; Name = n; Date = DateTime.Parse (d); Amount = amt; Key = 0; }
                                                                     Some { Type = t; Initial = tx; Name = n; Date = tx.Date; Category = String.Empty; Transactions = [tx] }
                                              | _ -> None
 
@@ -120,6 +120,7 @@ type Harness () as this =
 
         if result.HasValue && result.Value then let reader = new StreamReader (dialog.OpenFile ())
                                                 let csv = new CsvHelper.CsvReader (reader)
+                                                let mutable i = 0
                                                 Source <- []
                                                 this.Proxy.Books.Clear ()
                                                 while csv.Read () do
@@ -132,9 +133,10 @@ type Harness () as this =
                                                                  | _        -> raise (Handler.LoadProblem "Unknown transaction type")
                                                     let amt = Decimal.Parse (csv.["Amount"])
                                                     let value = if t = AccountType.Credit then amt else -amt
-                                                    let tx = { Type = TransactionType.Initial; Name = name; Date = DateTime.Parse (csv.["Date"]); Amount = value; }
+                                                    let tx = { Type = TransactionType.Initial; Name = name; Date = DateTime.Parse (csv.["Date"]); Amount = value; Key = i; }
                                                     let acct = { Type = t; Initial = tx; Name = name; Date = tx.Date; Category = csv.["Category"]; Transactions = [tx] }
                                                     Source <- acct :: Source
+                                                    i <- i + 1
 
                                                 for acct in Source do
                                                     this.Proxy.Books.Add (new Book (acct))

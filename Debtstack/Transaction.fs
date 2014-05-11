@@ -12,6 +12,7 @@ type TransactionType =
     | InterestPaid = 3
 
 type Transaction = {
+    Key: int;
     Type: TransactionType;
     Name: string;
     Amount: decimal;
