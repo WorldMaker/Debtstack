@@ -116,6 +116,7 @@ type Harness () as this =
         if result.HasValue && result.Value then let reader = new StreamReader (dialog.OpenFile ())
                                                 let csv = new CsvHelper.CsvReader (reader)
                                                 Source <- []
+                                                this.Proxy.Books.Clear ()
                                                 while csv.Read () do
                                                   if not (csv.["Category"].StartsWith ("Exclude", StringComparison.OrdinalIgnoreCase)) then
                                                     let name = csv.["Description"]
@@ -130,11 +131,10 @@ type Harness () as this =
                                                     let acct = { Type = t; Initial = tx; Name = name; Date = tx.Date; Category = csv.["Category"]; Transactions = [tx] }
                                                     Source <- acct :: Source
 
-                                                    this.Proxy.Books.Clear ()
-                                                    for acct in Source do
-                                                        this.Proxy.Books.Add (new Book (acct))
+                                                for acct in Source do
+                                                    this.Proxy.Books.Add (new Book (acct))
 
-                                                    Shelf <- this.Proxy.Books |> Seq.map (fun book -> book.Proxy.Current.Initial, book) |> Map.ofSeq
+                                                Shelf <- this.Proxy.Books |> Seq.map (fun book -> book.Proxy.Current.Initial, book) |> Map.ofSeq
         this.OnPropertyChanged "TxCount"
 
     member this.Simple (_ : obj) =
