@@ -35,7 +35,7 @@ type Account = {
         member this.Balance with get () = this.Transactions |> List.sumBy (fun tx -> tx.Amount)
         member this.TotalInterest with get () = this.Transactions |> List.filter (fun tx -> tx.Type = TransactionType.Interest) |> List.sumBy (fun tx -> tx.Amount)
         member this.PaidInterest with get () = this.Transactions |> List.filter (fun tx -> tx.Type = TransactionType.InterestPaid) |> List.sumBy (fun tx -> tx.Amount)
-        member this.Interest with get () = this.TotalInterest - this.PaidInterest
+        member this.Interest with get () = this.TotalInterest + this.PaidInterest
         member this.PaidDate with get () = match this.Balance with
                                            | 0m -> Some this.Transactions.Head.Date
                                            | _ -> None
