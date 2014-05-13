@@ -35,6 +35,7 @@ module Handler =
 [<Interface>]
 type IBook =
     abstract member Current : Account with get, set
+    abstract member Naive : Account with get, set
     abstract member Simple : Account with get, set
     abstract member Proportional : Account with get, set
 
@@ -143,6 +144,13 @@ type Harness () as this =
 
                                                 Shelf <- this.Proxy.Books |> Seq.map (fun book -> book.Proxy.Current.Initial, book) |> Map.ofSeq
         this.OnPropertyChanged "TxCount"
+
+    member this.Naive () =
+        let credits, debits = Strategies.naive Source
+        for acct in Seq.append debits credits do
+            (Shelf.Item (acct.Initial)).Proxy.Naive <- acct
+            (Shelf.Item (acct.Initial)).Proxy.Current <- acct
+        this.Display ()
 
     member this.Simple (_ : obj) =
         let openaccts, closedaccts = Strategies.simpleStack Source

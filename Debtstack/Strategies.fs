@@ -99,3 +99,18 @@ module Strategies =
                        | [], stack, results                        -> stack, results
         screen (accts, [], [])
 
+    let naive (accts : list<Account>) =
+        let credits = accts |> Seq.filter (fun x -> x.Type = AccountType.Credit)
+        let debits = accts |> Seq.filter (fun x -> x.Type <> AccountType.Credit) |> Seq.toArray
+        let mutable results: list<Account> = []
+        for credit in credits do
+            let mutable c = credit
+            for i in 0 .. debits.Length - 1 do
+                let d = debits.[i]
+                if c.Balance > 0m && d.Balance < 0m then let amt = min (abs d.Balance) c.Balance
+                                                         c <- adjust c { Type = TransactionType.Adjustment; Name = d.Name; Amount = -amt; Date = c.Date; Key = 0 }
+                                                         debits.[i] <- adjust d { Type = TransactionType.Adjustment; Name = c.Name; Amount = amt; Date = c.Date; Key = 0 }
+
+            if c.Balance > 0m then raise (MoneyProblems "Payment failed")
+            results <- c :: results
+        results, debits

@@ -49,6 +49,7 @@
             <!--<Separator/>
             <Button Content="Reset" Command="{Binding Command.Reset}"/>-->
             <Separator/>
+            <Button Content="Naive" Command="{Binding Command.Naive}"/>
             <Button Content="Simple" Command="{Binding Command.Simple}"/>
             <Button Content="Proportional" Command="{Binding Command.Proportional}"/>
         </ToolBar>
