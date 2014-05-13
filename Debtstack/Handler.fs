@@ -61,6 +61,10 @@ type Harness () as this =
 
     let mutable Source = list<Account>.Empty
     let mutable Shelf = Map.empty<Transaction, Book>
+    
+    let mutable naiveComputed = false
+    let mutable simpleComputed = false
+    let mutable proportionalComputed = false
 
     do
         this.Proxy.Books <- new ObservableCollection<Book> ()
@@ -77,6 +81,13 @@ type Harness () as this =
                                                                   | _ -> false)
         this.Proxy.ClosedBooks.SortDescriptions.Add (new SortDescription ("Current.PaidDate", ListSortDirection.Descending));
 
+    member this.Reset () =
+        Source <- []
+        this.Proxy.Books.Clear ()
+        naiveComputed <- false
+        simpleComputed <- false
+        proportionalComputed <- false
+
     member this.TxCount with get () = Source.Length
 
     member this.TxSum with get () = this.Proxy.Books |> Seq.sumBy (fun book -> book.Proxy.Current.Balance)
@@ -88,6 +99,7 @@ type Harness () as this =
                                                             |> Seq.map (fun (k, g) -> k, g |> Seq.map (fun book -> book.Proxy.Current.Balance) |> Seq.sum)
 
     member this.LoadTab (_ : obj) =
+        this.Reset ()
         let to_acct = fun (line : string) -> match line.Split('\t') |> Array.filter (fun x -> x <> String.Empty) |> Array.toList with
                                              | d :: n :: a :: xs -> let amt = Handler.readAcct a
                                                                     let t = if n.StartsWith ("Interest", StringComparison.OrdinalIgnoreCase) then AccountType.Interest
@@ -107,7 +119,6 @@ type Harness () as this =
                                                 |> Seq.map    (fun x -> x.Value)
                                                 |> List.ofSeq
 
-                                                this.Proxy.Books.Clear ()
                                                 for acct in Source do
                                                     this.Proxy.Books.Add (new Book (acct))
 
@@ -115,6 +126,7 @@ type Harness () as this =
         this.OnPropertyChanged "TxCount"
 
     member this.LoadMint (_ : obj) =
+        this.Reset ()
         let dialog = new OpenFileDialog ()
         dialog.Filter <- "CSV Files|*.csv"
         let result = dialog.ShowDialog ()
@@ -122,8 +134,6 @@ type Harness () as this =
         if result.HasValue && result.Value then let reader = new StreamReader (dialog.OpenFile ())
                                                 let csv = new CsvHelper.CsvReader (reader)
                                                 let mutable i = 0
-                                                Source <- []
-                                                this.Proxy.Books.Clear ()
                                                 while csv.Read () do
                                                   if not (csv.["Category"].StartsWith ("Exclude", StringComparison.OrdinalIgnoreCase)) then
                                                     let name = csv.["Description"]
@@ -146,24 +156,30 @@ type Harness () as this =
         this.OnPropertyChanged "TxCount"
 
     member this.Naive () =
-        let credits, debits = Strategies.naive Source
-        for acct in Seq.append debits credits do
-            (Shelf.Item (acct.Initial)).Proxy.Naive <- acct
-            (Shelf.Item (acct.Initial)).Proxy.Current <- acct
+        if naiveComputed then for book in this.Proxy.Books do book.Proxy.Current <- book.Proxy.Naive
+                         else let credits, debits = Strategies.naive Source
+                              for acct in Seq.append debits credits do
+                                  (Shelf.Item (acct.Initial)).Proxy.Naive <- acct
+                                  (Shelf.Item (acct.Initial)).Proxy.Current <- acct
+                              naiveComputed <- true
         this.Display ()
 
     member this.Simple (_ : obj) =
-        let openaccts, closedaccts = Strategies.simpleStack Source
-        for acct in Seq.append openaccts closedaccts do
-            (Shelf.Item (acct.Initial)).Proxy.Simple <- acct
-            (Shelf.Item (acct.Initial)).Proxy.Current <- acct
+        if simpleComputed then for book in this.Proxy.Books do book.Proxy.Current <- book.Proxy.Simple
+                          else let openaccts, closedaccts = Strategies.simpleStack Source
+                               for acct in Seq.append openaccts closedaccts do
+                                   (Shelf.Item (acct.Initial)).Proxy.Simple <- acct
+                                   (Shelf.Item (acct.Initial)).Proxy.Current <- acct
+                               simpleComputed <- true
         this.Display ()
 
     member this.Proportional (_ : obj) =
-        let openaccts, closedaccts = Strategies.favorTheOld Source
-        for acct in Seq.append openaccts closedaccts do
-            (Shelf.Item (acct.Initial)).Proxy.Proportional <- acct
-            (Shelf.Item (acct.Initial)).Proxy.Current <- acct
+        if proportionalComputed then for book in this.Proxy.Books do book.Proxy.Current <- book.Proxy.Proportional
+                                else let openaccts, closedaccts = Strategies.favorTheOld Source
+                                     for acct in Seq.append openaccts closedaccts do
+                                         (Shelf.Item (acct.Initial)).Proxy.Proportional <- acct
+                                         (Shelf.Item (acct.Initial)).Proxy.Current <- acct
+                                     proportionalComputed <- true
         this.Display ()
 
     member this.Display () =
