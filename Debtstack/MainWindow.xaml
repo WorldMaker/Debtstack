@@ -76,6 +76,7 @@
         </Grid>
         <DataGrid Grid.Row="4" IsReadOnly="True" ItemsSource="{Binding ClosedBooks.View}" AutoGenerateColumns="False">
             <DataGrid.Columns>
+                <DataGridTextColumn Header="Type" Binding="{Binding Current.Type}"/>
                 <DataGridTextColumn Header="Date" Binding="{Binding Current.Date, StringFormat=d}"/>
                 <DataGridTextColumn Header="" Binding="{Binding Current.MonthAgo}"/>
                 <DataGridTextColumn Header="Paid" Binding="{Binding Current.PaidDate.Value, StringFormat=d}"/>
@@ -84,6 +85,7 @@
                 <DataGridTextColumn Header="Description" Binding="{Binding Current.Name}"/>
                 <DataGridTextColumn Header="Amount" Binding="{Binding Current.Initial.Amount, StringFormat=c}"/>
                 <DataGridTextColumn Header="Interest" Binding="{Binding Current.TotalInterest, StringFormat=c}"/>
+                <DataGridTextColumn Header="Category" Binding="{Binding Current.Category}"/>
                 <DataGridTemplateColumn Header="Details">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
