@@ -11,6 +11,7 @@ open System.Windows
 open System.Windows.Data
 open Microsoft.Win32
 open ImpromptuInterface.FSharp
+open ReactiveUI
 open ReflexUX
 
 module Handler =
@@ -55,6 +56,7 @@ type IDebtstack =
     abstract member Books : ObservableCollection<Book> with get, set
     abstract member OpenBooks : CollectionViewSource with get, set
     abstract member ClosedBooks : CollectionViewSource with get, set
+    abstract member IsLoading : bool with get, set
 
 type Harness () as this =
     inherit Reflex<IDebtstack> ()
@@ -67,6 +69,8 @@ type Harness () as this =
     let mutable proportionalComputed = false
 
     do
+        this.Proxy.IsLoading <- false
+
         this.Proxy.Books <- new ObservableCollection<Book> ()
         this.Proxy.OpenBooks <- new CollectionViewSource ()
         this.Proxy.OpenBooks.Source <- this.Proxy.Books
@@ -80,6 +84,11 @@ type Harness () as this =
                                                                   | :? Book as book -> book.Proxy.Current.PaidDate.IsSome
                                                                   | _ -> false)
         this.Proxy.ClosedBooks.SortDescriptions.Add (new SortDescription ("Current.PaidDate", ListSortDirection.Descending));
+
+        let loading = this.Proxy.WhenAnyValue (fun d -> d.IsLoading)
+        this.React ("CanNaive", loading) |> ignore
+        this.React ("CanSimple", loading) |> ignore
+        this.React ("CanProportional", loading) |> ignore
 
     member this.Reset () =
         Source <- []
@@ -125,34 +134,49 @@ type Harness () as this =
                                                 Shelf <- this.Proxy.Books |> Seq.map (fun book -> book.Proxy.Current.Initial, book) |> Map.ofSeq
         this.OnPropertyChanged "TxCount"
 
+    member this.ReadMint (path : string) =
+        let reader = new StreamReader (path)
+        let csv = new CsvHelper.CsvReader (reader)
+        let mutable i = 0
+        while csv.Read () do
+            if not (csv.["Category"].StartsWith ("Exclude", StringComparison.OrdinalIgnoreCase)) then
+                let name = csv.["Description"]
+                let t = if name.IndexOf ("Interest", StringComparison.OrdinalIgnoreCase) >= 0 then AccountType.Interest
+                        else match csv.["Transaction Type"] with
+                             | "debit"  -> AccountType.Debit
+                             | "credit" -> AccountType.Credit
+                             | _        -> raise (Handler.LoadProblem "Unknown transaction type")
+                let amt = Decimal.Parse (csv.["Amount"])
+                let value = if t = AccountType.Credit then amt else -amt
+                let tx = { Type = TransactionType.Initial; Name = name; Date = DateTime.Parse (csv.["Date"]); Amount = value; Key = i; }
+                let acct = { Type = t; Initial = tx; Name = name; Date = tx.Date; Category = csv.["Category"]; Transactions = [tx] }
+                Source <- acct :: Source
+                i <- i + 1
+
     member this.LoadMint (_ : obj) =
         this.Reset ()
         let dialog = new OpenFileDialog ()
         dialog.Filter <- "CSV Files|*.csv"
         let result = dialog.ShowDialog ()
 
-        if result.HasValue && result.Value then let reader = new StreamReader (dialog.OpenFile ())
-                                                let csv = new CsvHelper.CsvReader (reader)
-                                                let mutable i = 0
-                                                while csv.Read () do
-                                                  if not (csv.["Category"].StartsWith ("Exclude", StringComparison.OrdinalIgnoreCase)) then
-                                                    let name = csv.["Description"]
-                                                    let t = if name.IndexOf ("Interest", StringComparison.OrdinalIgnoreCase) >= 0 then AccountType.Interest
-                                                            else match csv.["Transaction Type"] with
-                                                                 | "debit"  -> AccountType.Debit
-                                                                 | "credit" -> AccountType.Credit
-                                                                 | _        -> raise (Handler.LoadProblem "Unknown transaction type")
-                                                    let amt = Decimal.Parse (csv.["Amount"])
-                                                    let value = if t = AccountType.Credit then amt else -amt
-                                                    let tx = { Type = TransactionType.Initial; Name = name; Date = DateTime.Parse (csv.["Date"]); Amount = value; Key = i; }
-                                                    let acct = { Type = t; Initial = tx; Name = name; Date = tx.Date; Category = csv.["Category"]; Transactions = [tx] }
-                                                    Source <- acct :: Source
-                                                    i <- i + 1
+        this.Proxy.IsLoading <- true
+        let context = System.Threading.SynchronizationContext.Current
+        async {
+            do! Async.SwitchToThreadPool ()
+            if result.HasValue && result.Value then this.ReadMint (dialog.FileName)                                                    
 
-                                                for acct in Source do
-                                                    this.Proxy.Books.Add (new Book (acct))
+                                                    do! Async.SwitchToContext context
+                                                    for acct in Source do
+                                                        this.Proxy.Books.Add (new Book (acct))
 
-                                                Shelf <- this.Proxy.Books |> Seq.map (fun book -> book.Proxy.Current.Initial, book) |> Map.ofSeq
+                                                    do! Async.SwitchToThreadPool ()
+                                                    Shelf <- this.Proxy.Books |> Seq.map (fun book -> book.Proxy.Current.Initial, book) |> Map.ofSeq
+            do! Async.SwitchToContext context
+            this.FinishedLoading ()
+        } |> Async.Start
+
+    member this.FinishedLoading () =
+        this.Proxy.IsLoading <- false
         this.OnPropertyChanged "TxCount"
 
     member this.Naive () =
