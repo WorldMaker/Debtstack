@@ -173,7 +173,7 @@ type Harness () as this =
                                                     Shelf <- this.Proxy.Books |> Seq.map (fun book -> book.Proxy.Current.Initial, book) |> Map.ofSeq
             do! Async.SwitchToContext context
             this.FinishedLoading ()
-        } |> Async.Start
+        } |> Async.StartAsTask
 
     member this.FinishedLoading () =
         this.Proxy.IsLoading <- false
