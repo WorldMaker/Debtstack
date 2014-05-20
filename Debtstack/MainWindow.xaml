@@ -52,6 +52,9 @@
             <Button Content="Naive" Command="{Binding Command.Naive}"/>
             <Button Content="Simple" Command="{Binding Command.Simple}"/>
             <Button Content="Proportional" Command="{Binding Command.Proportional}"/>
+            <Separator/>
+            <DatePicker SelectedDate="{Binding FilterDate}"/>
+            <Button Content="Filter" Command="{Binding Command.DateFilter}"/>
         </ToolBar>
         <WrapPanel Grid.Row="1" Margin="5">
             <TextBlock Text="{Binding TxCount}"/>

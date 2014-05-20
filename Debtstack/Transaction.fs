@@ -37,9 +37,10 @@ type Account = {
         member this.TotalInterest with get () = this.Transactions |> List.filter (fun tx -> tx.Type = TransactionType.Interest) |> List.sumBy (fun tx -> tx.Amount)
         member this.PaidInterest with get () = this.Transactions |> List.filter (fun tx -> tx.Type = TransactionType.InterestPaid) |> List.sumBy (fun tx -> tx.Amount)
         member this.Interest with get () = this.TotalInterest + this.PaidInterest
-        member this.PaidDate with get () = match this.Balance with
-                                           | 0m -> Some this.Transactions.Head.Date
-                                           | _ -> None
+        member this.PaidDate with get () = match this.Transactions, this.Balance with
+                                           | tx :: _, 0m -> Some tx.Date
+                                           | [], 0m -> Some this.Date
+                                           | _, _ -> None
         member this.MonthAgo with get () = MonthAgo.monthAgo (this.Date)
         member this.CalendarSpan with get () = Option.bind (Some << CalendarSpan.calculate this.Date) this.PaidDate
         member this.MonthBetween with get () = Option.bind (Some << MonthAgo.monthBetween) this.CalendarSpan

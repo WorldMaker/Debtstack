@@ -57,6 +57,7 @@ type IDebtstack =
     abstract member OpenBooks : CollectionViewSource with get, set
     abstract member ClosedBooks : CollectionViewSource with get, set
     abstract member IsLoading : bool with get, set
+    abstract member FilterDate : DateTime with get, set
 
 type Harness () as this =
     inherit Reflex<IDebtstack> ()
@@ -85,10 +86,7 @@ type Harness () as this =
                                                                   | _ -> false)
         this.Proxy.ClosedBooks.SortDescriptions.Add (new SortDescription ("Current.PaidDate", ListSortDirection.Descending));
 
-        let loading = this.Proxy.WhenAnyValue (fun d -> d.IsLoading)
-        this.React ("CanNaive", loading) |> ignore
-        this.React ("CanSimple", loading) |> ignore
-        this.React ("CanProportional", loading) |> ignore
+        this.Proxy.FilterDate <- DateTime.Now
 
     member this.Reset () =
         Source <- []
@@ -204,6 +202,11 @@ type Harness () as this =
                                          (Shelf.Item (acct.Initial)).Proxy.Proportional <- acct
                                          (Shelf.Item (acct.Initial)).Proxy.Current <- acct
                                      proportionalComputed <- true
+        this.Display ()
+
+    member this.DateFilter () =
+        for book in this.Proxy.Books do book.Proxy.Current <- { book.Proxy.Current with Transactions = book.Proxy.Current.Transactions
+                                                                                                       |> List.filter (fun tx -> tx.Date <= this.Proxy.FilterDate) }
         this.Display ()
 
     member this.Display () =
