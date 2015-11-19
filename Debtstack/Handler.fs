@@ -103,7 +103,7 @@ type Harness () as this =
 
     member this.TxByCategory with get () = this.Proxy.Books |> Seq.filter (fun book -> book.Proxy.Current.PaidDate.IsNone)
                                                             |> Seq.groupBy (fun tx -> tx.Proxy.Current.Category)
-                                                            |> Seq.map (fun (k, g) -> k, g |> Seq.map (fun book -> book.Proxy.Current.Balance) |> Seq.sum)
+                                                            |> Seq.map (fun (k, g) -> k, g |> Seq.map (fun book -> Math.Abs book.Proxy.Current.Balance) |> Seq.sum)
 
     member this.LoadTab (_ : obj) =
         this.Reset ()

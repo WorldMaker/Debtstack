@@ -73,9 +73,33 @@
             </Grid.ColumnDefinitions>
             <ListBox ItemsSource="{Binding OpenBooks.View}" Grid.Row="2" HorizontalContentAlignment="Stretch">
             </ListBox>
-            <chartingToolkit:Chart Grid.Column="2">
-                <chartingToolkit:PieSeries ItemsSource="{Binding TxByCategory}" IndependentValueBinding="{Binding Item1}" DependentValueBinding="{Binding Item2}"/>
-            </chartingToolkit:Chart>
+            <visualizationToolkit:TreeMap ItemsSource="{Binding TxByCategory}" Grid.Column="2">
+                <visualizationToolkit:TreeMap.ItemDefinition>
+                    <visualizationToolkit:TreeMapItemDefinition ValuePath="Item2">
+                        <DataTemplate>
+                            <Grid>
+                                <Border
+                                    BorderBrush="Black"
+                                    BorderThickness="1"
+                                    Background="#ff7fc3ff"
+                                    Margin="0 0 1 1">
+                                    <Grid>
+                                        <Viewbox Margin="3 0 3 0">
+                                            <TextBlock Text="{Binding Item1}"/>
+                                        </Viewbox>
+                                    </Grid>
+                                    <ToolTipService.ToolTip>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Item1}"/>
+                                            <TextBlock Text="{Binding Item2}"/>
+                                        </StackPanel>
+                                    </ToolTipService.ToolTip>
+                                </Border>
+                            </Grid>
+                        </DataTemplate>
+                    </visualizationToolkit:TreeMapItemDefinition>
+                </visualizationToolkit:TreeMap.ItemDefinition>
+            </visualizationToolkit:TreeMap>
             <GridSplitter Grid.Column="1" VerticalAlignment="Stretch" HorizontalAlignment="Center" Width="4"/>
         </Grid>
         <DataGrid Grid.Row="4" IsReadOnly="True" ItemsSource="{Binding ClosedBooks.View}" AutoGenerateColumns="False">
